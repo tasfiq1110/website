@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Mirage Player - Vector Integration</title>
+    <script defer src="https://embed.arcanemirage.com/528f8edc-dc5b-486d-a10f-87aa0bc2a368/e"></script>
+</head>
+<body style="margin: 0; text-align: center;">
+
+    <h2>Arcane Mirage Player - Vector Data</h2>
+    <p id="status">Waiting for Arcane Mirage to load...</p>
+
+    <div id="am-container" style="width: 640px; height: 480px; margin: auto; border: 1px solid black;">
+        <div id="arcane-player"
+            data-project-id="5554"
+            data-project-key="528f8edc-dc5b-486d-a10f-87aa0bc2a368"
+            data-token="4OfCQ1to3g_k"
+            data-enable-events-passthrough="true">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("📢 Script Loaded: Waiting for Arcane Mirage Player Ready Event...");
+
+            // Extract URL Parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const vectorParam = urlParams.get("vector");
+
+            if (vectorParam) {
+                console.log("✅ Extracted Vector Parameter:", vectorParam);
+            } else {
+                console.warn("⚠️ No vector parameter found in URL.");
+            }
+
+            // Wait for Arcane Mirage to initialize
+            function waitForArcanePlayer() {
+                if (window.ArcanePlayer) {
+                    console.log("✅ ArcanePlayer Exists. Waiting for 'ready' event...");
+
+                    // Listen for "ready" event
+                    window.ArcanePlayer.onPlayerEvent("ready", () => {
+                        console.log("✅ Arcane Mirage Player is fully loaded! Now sending vector data to Unreal...");
+                        document.getElementById("status").innerText = "Arcane Mirage is Ready.";
+
+                        if (vectorParam) {
+                            // Send the extracted vector parameter to Unreal Engine
+                            window.ArcanePlayer.emitUIEvent({
+                                event: "CustomUIEvent",
+                                data: { value: vectorParam }
+                            });
+                            console.log("📤 Sent vector data to Unreal Engine:", vectorParam);
+                        }
+                    });
+
+                    // Listen for Unreal Engine's response
+                    window.ArcanePlayer.onReceiveEvent("CustomUIEventResponse", (response) => {
+                        console.log("🔄 Response from Unreal Engine:", response);
+                        document.getElementById("status").innerText = "Response from UE: " + response;
+                    });
+
+                } else {
+                    setTimeout(waitForArcanePlayer, 500);
+                }
+            }
+            waitForArcanePlayer();
+        });
+    </script>
+
+</body>
+</html>
