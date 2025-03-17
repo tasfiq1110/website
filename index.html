@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arcane Mirage Player - Vector Integration</title>
     <script defer src="https://embed.arcanemirage.com/65736464-4833-43ac-8d90-8a6924907b05/e"></script>
 </head>
@@ -30,6 +30,30 @@
 
             if (vectorParam) {
                 console.log("✅ Extracted Vector Parameter:", vectorParam);
+                // Format the vector as a proper string for Unreal Engine
+                let cleanedVector = vectorParam.replace(/[\(\)]/g, '').split(',');
+                let vectorValues = cleanedVector.map(item => parseFloat(item.split('=')[1].trim()));  // Getting the X, Y, Z values
+
+                console.log("✅ Cleaned Vector:", vectorValues);  // [X, Y, Z]
+
+                // You can now pass this vector to Unreal Engine.
+                // The event and data to be sent
+                let vectorData = {
+                    event: "CustomUIEvent",
+                    data: {
+                        value: {
+                            x: vectorValues[0],
+                            y: vectorValues[1],
+                            z: vectorValues[2]
+                        }
+                    }
+                };
+
+                console.log("📤 Sending vector data to Unreal Engine:", vectorData);
+                // Send the extracted vector data to Unreal Engine
+                if (window.ArcanePlayer) {
+                    window.ArcanePlayer.emitUIEvent(vectorData);
+                }
             } else {
                 console.warn("⚠️ No vector parameter found in URL.");
             }
@@ -43,15 +67,6 @@
                     window.ArcanePlayer.onPlayerEvent("ready", () => {
                         console.log("✅ Arcane Mirage Player is fully loaded! Now sending vector data to Unreal...");
                         document.getElementById("status").innerText = "Arcane Mirage is Ready.";
-
-                        if (vectorParam) {
-                            // Send the extracted vector parameter to Unreal Engine
-                            window.ArcanePlayer.emitUIEvent({
-                                event: "CustomUIEvent",
-                                data: { value: vectorParam }
-                            });
-                            console.log("📤 Sent vector data to Unreal Engine:", vectorParam);
-                        }
                     });
 
                     // Listen for Unreal Engine's response
