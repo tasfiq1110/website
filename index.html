@@ -30,17 +30,6 @@
 
             if (vectorParam) {
                 console.log("✅ Extracted Vector Parameter:", vectorParam);
-                
-                // Format cleanup: Ensure correct vector format
-                const cleanedVector = vectorParam.replace(/[^0-9.,-]/g, '').replace(/,/g, ', ');  // Only numbers, commas, and periods
-                console.log("✅ Cleaned Vector Parameter:", cleanedVector);
-
-                // Send the cleaned vector to Unreal
-                window.ArcanePlayer.emitUIEvent({
-                    event: "CustomUIEvent",
-                    data: { value: cleanedVector }
-                });
-                console.log("📤 Sent vector data to Unreal Engine:", cleanedVector);
             } else {
                 console.warn("⚠️ No vector parameter found in URL.");
             }
@@ -55,12 +44,22 @@
                         console.log("✅ Arcane Mirage Player is fully loaded! Now sending vector data to Unreal...");
                         document.getElementById("status").innerText = "Arcane Mirage is Ready.";
 
-                        // Vector data is already sent above, now listen for Unreal Engine's response
-                        window.ArcanePlayer.onReceiveEvent("CustomUIEventResponse", (response) => {
-                            console.log("🔄 Response from Unreal Engine:", response);
-                            document.getElementById("status").innerText = "Response from UE: " + response;
-                        });
+                        if (vectorParam) {
+                            // Send the extracted vector parameter to Unreal Engine
+                            window.ArcanePlayer.emitUIEvent({
+                                event: "CustomUIEvent",
+                                data: { value: vectorParam }
+                            });
+                            console.log("📤 Sent vector data to Unreal Engine:", vectorParam);
+                        }
                     });
+
+                    // Listen for Unreal Engine's response
+                    window.ArcanePlayer.onReceiveEvent("CustomUIEventResponse", (response) => {
+                        console.log("🔄 Response from Unreal Engine:", response);
+                        document.getElementById("status").innerText = "Response from UE: " + response;
+                    });
+
                 } else {
                     setTimeout(waitForArcanePlayer, 500);
                 }
