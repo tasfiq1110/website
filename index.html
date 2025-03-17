@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arcane Mirage Player - Vector Integration</title>
+    <title>Arcane Mirage Player Integration</title>
     <script defer src="https://embed.arcanemirage.com/65736464-4833-43ac-8d90-8a6924907b05/e"></script>
 </head>
 <body style="margin: 0; text-align: center;">
 
-    <h2>Arcane Mirage Player - Vector Data</h2>
+    <h2>Arcane Mirage Player</h2>
     <p id="status">Waiting for Arcane Mirage to load...</p>
 
     <div id="am-container" style="width: 640px; height: 480px; margin: auto; border: 1px solid black;">
@@ -26,36 +26,12 @@
 
             // Extract URL Parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const vectorParam = urlParams.get("vector");
+            const dataParam = urlParams.get("data");
 
-            if (vectorParam) {
-                console.log("✅ Extracted Vector Parameter:", vectorParam);
-                // Format the vector as a proper string for Unreal Engine
-                let cleanedVector = vectorParam.replace(/[\(\)]/g, '').split(',');
-                let vectorValues = cleanedVector.map(item => parseFloat(item.split('=')[1].trim()));  // Getting the X, Y, Z values
-
-                console.log("✅ Cleaned Vector:", vectorValues);  // [X, Y, Z]
-
-                // You can now pass this vector to Unreal Engine.
-                // The event and data to be sent
-                let vectorData = {
-                    event: "CustomUIEvent",
-                    data: {
-                        value: {
-                            x: vectorValues[0],
-                            y: vectorValues[1],
-                            z: vectorValues[2]
-                        }
-                    }
-                };
-
-                console.log("📤 Sending vector data to Unreal Engine:", vectorData);
-                // Send the extracted vector data to Unreal Engine
-                if (window.ArcanePlayer) {
-                    window.ArcanePlayer.emitUIEvent(vectorData);
-                }
+            if (dataParam) {
+                console.log("✅ Extracted URL Parameter:", dataParam);
             } else {
-                console.warn("⚠️ No vector parameter found in URL.");
+                console.warn("⚠️ No data parameter found in URL.");
             }
 
             // Wait for Arcane Mirage to initialize
@@ -65,8 +41,17 @@
 
                     // Listen for "ready" event
                     window.ArcanePlayer.onPlayerEvent("ready", () => {
-                        console.log("✅ Arcane Mirage Player is fully loaded! Now sending vector data to Unreal...");
+                        console.log("✅ Arcane Mirage Player is fully loaded! Now sending data to Unreal...");
                         document.getElementById("status").innerText = "Arcane Mirage is Ready.";
+
+                        if (dataParam) {
+                            // Send the extracted URL parameter to Unreal Engine
+                            window.ArcanePlayer.emitUIEvent({
+                                event: "CustomUIEvent",
+                                data: { value: dataParam }
+                            });
+                            console.log("📤 Sent data to Unreal Engine:", dataParam);
+                        }
                     });
 
                     // Listen for Unreal Engine's response
