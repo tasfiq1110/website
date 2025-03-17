@@ -30,8 +30,9 @@
 
             if (vectorParam) {
                 console.log("✅ Extracted Vector Parameter:", vectorParam);
-                // Clean up the vector format from (X=1050,Y=8310,Z=100) to (X: 1050, Y: 8310, Z: 100)
-                const cleanedVector = vectorParam.replace(/=/g, ":").replace(/,/g, ", ");
+                
+                // Format cleanup: Ensure correct vector format
+                const cleanedVector = vectorParam.replace(/[^0-9.,-]/g, '').replace(/,/g, ', ');  // Only numbers, commas, and periods
                 console.log("✅ Cleaned Vector Parameter:", cleanedVector);
 
                 // Send the cleaned vector to Unreal
