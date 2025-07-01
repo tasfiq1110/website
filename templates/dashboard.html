@@ -2,16 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Meal Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
+            padding: 1rem;
+            margin: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            color: #222;
+        }
+
+        section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #444;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+
+        input[type="number"],
+        input[type="month"],
+        textarea {
+            width: 100%;
+            padding: 0.6rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group label {
+            flex: 1 1 45%;
+            font-weight: normal;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #00acc1;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00838f;
+        }
+
+        .result {
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            color: #00695c;
+            font-weight: 600;
+        }
+
+        .scrollable-table {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            background-color: #fafafa;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: #00acc1;
+            color: white;
+        }
+
+        .logout {
+            display: block;
+            text-align: center;
+            margin-top: 2rem;
+            font-weight: bold;
+            color: crimson;
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            section h2 {
+                font-size: 1rem;
+            }
+            th, td {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Welcome, {{ session['username'] }}</h1>
 
         <!-- Meal Submission -->
-        <section class="card">
+        <section>
             <h2>Submit Today's Meal</h2>
             <form id="mealForm">
                 <div class="checkbox-group">
@@ -25,7 +157,7 @@
         </section>
 
         <!-- Bazar Cost -->
-        <section class="card">
+        <section>
             <h2>Submit Today's Bazar Cost</h2>
             <form id="bazarForm">
                 <label for="cost">Amount (৳):</label>
@@ -38,26 +170,27 @@
         </section>
 
         <!-- Month Picker -->
-        <section class="card">
+        <section>
             <h2>Select Month</h2>
-            <input type="month" id="monthPicker" value="{{ '%Y-%m'|format(datetime.utcnow()) }}">
+            <input type="month" id="monthPicker">
         </section>
 
-        <!-- Summaries -->
-        <section class="card">
+        <!-- Personal Summary -->
+        <section>
             <h2>My Monthly Meal Summary</h2>
             <button id="personalSummaryBtn">Show Personal Summary</button>
             <div id="personalSummary" class="scrollable-table"></div>
         </section>
 
-        <section class="card">
+        <!-- Global Summary -->
+        <section>
             <h2>Global Monthly Meal Summary</h2>
             <button id="globalSummaryBtn">Show Global Summary</button>
             <div id="globalSummary" class="scrollable-table"></div>
         </section>
 
-        <!-- Cost -->
-        <section class="card">
+        <!-- Cost Calculation -->
+        <section>
             <h2>Cost Calculation Per Person</h2>
             <button id="calculateCostBtn">Calculate Monthly Cost</button>
             <div id="costResult" class="scrollable-table"></div>
