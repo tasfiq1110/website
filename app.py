@@ -88,6 +88,12 @@ def summary():
     conn.close()
     return jsonify(rows)
 
+# 🚀 Required for Render.com
+def create_app():
+    init_db()
+    return app
+
+# 🧪 Local development support
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=10000)
