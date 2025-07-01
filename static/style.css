@@ -1,128 +1,64 @@
-/* Reset */
-* {
-    box-sizing: border-box;
+body {
+    background: #f4f4f8;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
 }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f4f4;
-    padding: 1rem;
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.form-container h2 {
+    margin-bottom: 20px;
     color: #333;
 }
 
-.container {
-    max-width: 600px;
-    margin: auto;
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 1rem;
-}
-
-.card {
-    background: white;
-    padding: 1rem;
-    margin-bottom: 1.2rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-form label {
-    display: block;
-    margin-top: 0.8rem;
-    font-weight: bold;
-}
-
-input[type="number"],
-input[type="month"],
-textarea {
+.form-container input {
     width: 100%;
-    padding: 0.6rem;
-    margin-top: 0.4rem;
-    border: 1px solid #ccc;
+    padding: 12px 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
     border-radius: 6px;
+    font-size: 16px;
 }
 
-.checkbox-group {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    margin: 1rem 0;
-}
-
-.checkbox-group label {
-    flex: 1 0 30%;
-    margin-bottom: 0.5rem;
-}
-
-button {
-    background-color: #007BFF;
+.form-container button {
+    width: 100%;
+    padding: 12px;
+    background-color: #00b894;
     color: white;
     border: none;
-    padding: 0.6rem 1rem;
     border-radius: 6px;
-    margin-top: 1rem;
+    font-size: 16px;
     cursor: pointer;
-    width: 100%;
-    font-weight: bold;
-    transition: 0.3s;
+    transition: background 0.3s ease;
 }
 
-button:hover {
-    background-color: #0056b3;
+.form-container button:hover {
+    background-color: #019875;
 }
 
-.result {
-    margin-top: 0.5rem;
-    color: green;
-    font-weight: bold;
+.form-switch {
+    margin-top: 15px;
+    font-size: 14px;
 }
 
-.logout {
-    display: block;
-    text-align: center;
-    margin-top: 1.5rem;
-    color: red;
-    font-weight: bold;
+.form-switch a {
+    color: #00b894;
     text-decoration: none;
 }
 
-.scrollable-table {
-    overflow-x: auto;
-    margin-top: 1rem;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 0.5rem;
-}
-
-th, td {
-    padding: 0.6rem;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-th {
-    background-color: #007BFF;
-    color: white;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-    .checkbox-group label {
-        flex: 1 0 45%;
-    }
-
-    th, td {
-        font-size: 0.9rem;
-    }
-
-    button {
-        font-size: 0.95rem;
-    }
+.form-switch a:hover {
+    text-decoration: underline;
 }
