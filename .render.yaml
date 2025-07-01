@@ -1,6 +1,9 @@
 services:
   - type: web
-    name: MealChecker
-    env: python
-    buildCommand: pip install -r requirements.txt
+    name: meal-tracker
+    runtime: python
+    buildCommand: ""
     startCommand: gunicorn app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
