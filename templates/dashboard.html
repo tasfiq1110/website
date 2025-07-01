@@ -9,6 +9,10 @@
     <div class="container">
         <h1>Welcome, {{ session['username'] }}</h1>
 
+        <!-- Month Selector -->
+        <h3>Select Month:</h3>
+        <input type="month" id="monthSelector" value="{{ current_month }}">
+
         <!-- Meal Submission -->
         <h2>Submit Today's Meal</h2>
         <form id="mealForm">
@@ -51,6 +55,9 @@
         <a id="logout" href="/logout">Logout</a>
     </div>
 
+    <script>
+        const CURRENT_MONTH = "{{ current_month }}";
+    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
