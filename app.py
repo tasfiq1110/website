@@ -3,7 +3,7 @@ import sqlite3
 import os
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.daily import DailyTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -68,7 +68,7 @@ def auto_fill_meals():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(auto_fill_meals, DailyTrigger(hour=0, minute=0))
+scheduler.add_job(auto_add_meals, CronTrigger(hour=0, minute=0))
 scheduler.start()
 
 
