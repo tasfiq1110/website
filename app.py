@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import sqlite3, os
+import sqlite3
+import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Use a strong secret in production
-
+app.secret_key = 'your_secret_key'
 DB_NAME = "database.db"
 
 def init_db():
@@ -27,27 +27,39 @@ def init_db():
         conn.close()
 
 @app.route('/')
-def login_page():
+def home():
     if 'username' in session:
-        return redirect(url_for('dashboard'))
-    return render_template("login.html")
+        return redirect('/dashboard')
+    return redirect('/login')
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/register')
+def register_page():
+    return render_template('register.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect('/login')
+    return render_template('dashboard.html', username=session['username'])
+
+@app.route('/register', methods=['POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        conn = sqlite3.connect(DB_NAME)
-        c = conn.cursor()
-        try:
-            c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-            conn.commit()
-            return redirect(url_for('login_page'))
-        except sqlite3.IntegrityError:
-            return "Username already exists"
-        finally:
-            conn.close()
-    return render_template("register.html")
+    username = request.form['username']
+    password = request.form['password']
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+        return "Registration Successful"
+    except sqlite3.IntegrityError:
+        return "Username already exists"
+    finally:
+        conn.close()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -60,19 +72,13 @@ def login():
     conn.close()
     if user:
         session['username'] = username
-        return redirect(url_for('dashboard'))
+        return "Login Successful"
     return "Invalid Credentials"
-
-@app.route('/dashboard')
-def dashboard():
-    if 'username' not in session:
-        return redirect(url_for('login_page'))
-    return render_template("dashboard.html", username=session['username'])
 
 @app.route('/logout')
 def logout():
-    session.clear()
-    return redirect(url_for('login_page'))
+    session.pop('username', None)
+    return redirect('/login')
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
@@ -84,7 +90,7 @@ def submit_meal():
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)",
+    c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)", 
               (session['username'], date, meal_type, timestamp))
     conn.commit()
     conn.close()
@@ -96,7 +102,7 @@ def summary():
         return "Unauthorized", 401
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT date, meal_type, COUNT(*) FROM meals WHERE username=? GROUP BY date, meal_type",
+    c.execute("SELECT date, meal_type, COUNT(*) FROM meals WHERE username=? GROUP BY date, meal_type", 
               (session['username'],))
     rows = c.fetchall()
     conn.close()
