@@ -4,6 +4,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const personalSummaryBtn = document.getElementById("personalSummaryBtn");
     const globalSummaryBtn = document.getElementById("globalSummaryBtn");
     const calculateCostBtn = document.getElementById("calculateCostBtn");
+    const monthSelector = document.getElementById("monthSelector");
+
+    function getSelectedMonth() {
+        return monthSelector?.value || CURRENT_MONTH; // fallback from Jinja var
+    }
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
@@ -51,7 +56,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (personalSummaryBtn) {
         personalSummaryBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/personal");
+            const selectedMonth = getSelectedMonth();
+            const res = await fetch(`/summary/personal?month=${selectedMonth}`);
             const result = document.getElementById("personalSummary");
             result.innerHTML = "";
 
@@ -67,7 +73,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (globalSummaryBtn) {
         globalSummaryBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/global");
+            const selectedMonth = getSelectedMonth();
+            const res = await fetch(`/summary/global?month=${selectedMonth}`);
             const result = document.getElementById("globalSummary");
             result.innerHTML = "";
 
@@ -83,7 +90,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (calculateCostBtn) {
         calculateCostBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/cost");
+            const selectedMonth = getSelectedMonth();
+            const res = await fetch(`/summary/cost?month=${selectedMonth}`);
             const result = document.getElementById("costResult");
             result.innerHTML = "";
 
