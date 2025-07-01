@@ -9,19 +9,19 @@
     <div class="container">
         <h1>Welcome, {{ session['username'] }}</h1>
 
-        <!-- Meal Submission Form -->
+        <!-- Meal Submission -->
         <h2>Submit Today's Meal</h2>
         <form id="mealForm">
             <div class="checkbox-group">
-                <label><input type="checkbox" name="meal" value="Breakfast">Breakfast</label>
-                <label><input type="checkbox" name="meal" value="Lunch">Lunch</label>
-                <label><input type="checkbox" name="meal" value="Dinner">Dinner</label>
+                <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
+                <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
+                <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
             </div>
             <button type="submit">Submit Meal</button>
             <div id="mealResult" class="result"></div>
         </form>
 
-        <!-- Bazar Cost Form -->
+        <!-- Bazar Cost -->
         <h2>Submit Today's Bazar Cost</h2>
         <form id="bazarForm">
             <label for="cost">Amount (৳):</label>
