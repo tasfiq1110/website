@@ -80,37 +80,42 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function generateSummaryTable(data, isPersonal) {
-        const table = document.createElement("table");
-        const thead = document.createElement("thead");
-        const headerRow = document.createElement("tr");
+    function generateSummaryTable(summary, isPersonal) {
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
 
-        const headers = isPersonal
-            ? ["Date", "Meal", "Count", "Modified", "Bazar ৳", "Details"]
-            : ["Username", "Date", "Meal", "Count", "Modified", "Bazar ৳", "Details"];
+    const headers = isPersonal
+        ? ["Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"]
+        : ["Username", "Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"];
 
-        headers.forEach(h => {
-            const th = document.createElement("th");
-            th.innerText = h;
-            headerRow.appendChild(th);
+    headers.forEach(h => {
+        const th = document.createElement("th");
+        th.innerText = h;
+        headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+
+    summary.forEach(row => {
+        const tr = document.createElement("tr");
+        const values = isPersonal
+            ? [row[1], row[2], row[3], row[4], row[5], row[6]]  // skip username
+            : row;
+
+        values.forEach(val => {
+            const td = document.createElement("td");
+            td.innerText = val;
+            tr.appendChild(td);
         });
 
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
+        tbody.appendChild(tr);
+    });
 
-        const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+    return table;
+}
 
-        data.forEach(row => {
-            const tr = document.createElement("tr");
-            row.forEach(val => {
-                const td = document.createElement("td");
-                td.innerText = val;
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        return table;
-    }
 });
