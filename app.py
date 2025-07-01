@@ -112,6 +112,7 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
 
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     app.run(host='0.0.0.0', port=10000)
