@@ -36,7 +36,6 @@ def init_db():
         conn.commit()
         conn.close()
 
-# ✅ RUN INIT ON IMPORT (so it works even under Gunicorn)
 init_db()
 
 @app.route('/')
@@ -92,26 +91,22 @@ def cost_summary():
     if 'username' not in session:
         return "Unauthorized", 401
 
-    now = datetime.now()
-    current_month = now.strftime("%Y-%m")
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Total bazar cost for the month
-    c.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE ?", (f"{current_month}-%",))
+    c.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE ?", (f"{month}-%",))
     total_bazar_cost = c.fetchone()[0] or 0
 
-    # Total number of all meals in the month
-    c.execute("SELECT COUNT(*) FROM meals WHERE date LIKE ?", (f"{current_month}-%",))
+    c.execute("SELECT COUNT(*) FROM meals WHERE date LIKE ?", (f"{month}-%",))
     total_meal_count = c.fetchone()[0] or 0
 
     meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
 
-    # Each user's meal count
     c.execute("""SELECT username, COUNT(*) FROM meals
                  WHERE date LIKE ?
-                 GROUP BY username""", (f"{current_month}-%",))
+                 GROUP BY username""", (f"{month}-%",))
     user_data = c.fetchall()
 
     results = []
@@ -126,13 +121,12 @@ def cost_summary():
     conn.close()
 
     return jsonify({
-        "month": current_month,
+        "month": month,
         "total_bazar_cost": total_bazar_cost,
         "total_meal_count": total_meal_count,
         "meal_unit_cost": round(meal_unit_cost, 2),
         "user_costs": results
     })
-
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
@@ -169,7 +163,6 @@ def submit_meal():
 
     return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
 
-
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
     if 'username' not in session:
@@ -195,31 +188,27 @@ def personal_summary():
         return "Unauthorized", 401
 
     username = session['username']
-    now = datetime.now()
-    current_month = now.strftime("%Y-%m")
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Meals
     c.execute("""
         SELECT date, COUNT(meal_type), MAX(is_modified)
         FROM meals
         WHERE username = ? AND date LIKE ?
         GROUP BY date
-    """, (username, f"{current_month}-%"))
+    """, (username, f"{month}-%"))
     meals = {row[0]: {"count": row[1], "modified": row[2]} for row in c.fetchall()}
 
-    # Bazar
     c.execute("""
         SELECT date, COUNT(*), SUM(cost), GROUP_CONCAT(details, '; ')
         FROM bazar
         WHERE username = ? AND date LIKE ?
         GROUP BY date
-    """, (username, f"{current_month}-%"))
+    """, (username, f"{month}-%"))
     bazar = {row[0]: {"bazar_count": row[1], "total_cost": row[2], "details": row[3]} for row in c.fetchall()}
 
-    # Merge rows by date
     all_dates = sorted(set(meals.keys()) | set(bazar.keys()))
     summary = []
     for date in all_dates:
@@ -237,40 +226,35 @@ def personal_summary():
 
     return jsonify({"summary": summary})
 
-
 @app.route('/summary/global')
 def global_summary():
-    now = datetime.now()
-    current_month = now.strftime("%Y-%m")
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Meals
     c.execute("""
         SELECT username, date, COUNT(meal_type), MAX(is_modified)
         FROM meals
         WHERE date LIKE ?
         GROUP BY username, date
-    """, (f"{current_month}-%",))
+    """, (f"{month}-%",))
     meals = {}
     for row in c.fetchall():
         key = (row[0], row[1])
         meals[key] = {"count": row[2], "modified": row[3]}
 
-    # Bazar
     c.execute("""
         SELECT username, date, COUNT(*), SUM(cost), GROUP_CONCAT(details, '; ')
         FROM bazar
         WHERE date LIKE ?
         GROUP BY username, date
-    """, (f"{current_month}-%",))
+    """, (f"{month}-%",))
     bazar = {}
     for row in c.fetchall():
         key = (row[0], row[1])
         bazar[key] = {"bazar_count": row[2], "total_cost": row[3], "details": row[4]}
 
-    # Merge rows by (username, date)
     all_keys = sorted(set(meals.keys()) | set(bazar.keys()))
     summary = []
     for key in all_keys:
@@ -289,12 +273,10 @@ def global_summary():
 
     return jsonify({"summary": summary})
 
-
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
 
-# ✅ Keep this block so local testing works
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
