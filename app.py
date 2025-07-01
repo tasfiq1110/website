@@ -1,10 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import sqlite3
 import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Secure random secret key
+app.secret_key = os.urandom(24)
 
 DB_NAME = "database.db"
 
@@ -24,11 +24,19 @@ def init_db():
                         meal_type TEXT NOT NULL,
                         timestamp TEXT NOT NULL
                     )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS bazar (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT NOT NULL,
+                        date TEXT NOT NULL,
+                        cost INTEGER NOT NULL,
+                        details TEXT,
+                        timestamp TEXT NOT NULL
+                    )''')
         conn.commit()
         conn.close()
 
-@app.route('/', endpoint='register')
-def show_register():
+@app.route('/')
+def register_page():
     if 'username' in session:
         return redirect(url_for('dashboard'))
     return render_template("register.html")
@@ -79,39 +87,80 @@ def dashboard():
 def submit_meal():
     if 'username' not in session:
         return "Unauthorized", 401
-    meal_type = request.form['meal']
+    meal_types = request.form.getlist('meal[]')
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)",
-              (session['username'], date, meal_type, timestamp))
+
+    c.execute("DELETE FROM meals WHERE username=? AND date=?", (session['username'], date))  # overwrite
+    for meal in meal_types:
+        c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)",
+                  (session['username'], date, meal, timestamp))
     conn.commit()
     conn.close()
-    return "Meal submitted"
+    return "Meal submitted successfully"
 
-@app.route('/summary')
-def summary():
+@app.route('/submit_bazar', methods=['POST'])
+def submit_bazar():
+    if 'username' not in session:
+        return "Unauthorized", 401
+    cost = request.form['cost']
+    details = request.form['details']
+    now = datetime.now()
+    date = now.strftime("%Y-%m-%d")
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("INSERT INTO bazar (username, date, cost, details, timestamp) VALUES (?, ?, ?, ?, ?)",
+              (session['username'], date, cost, details, timestamp))
+    conn.commit()
+    conn.close()
+    return "Bazar info submitted"
+
+@app.route('/summary/personal')
+def personal_summary():
     if 'username' not in session:
         return "Unauthorized", 401
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT date, meal_type, COUNT(*) FROM meals WHERE username=? GROUP BY date, meal_type",
+    c.execute("""SELECT date, GROUP_CONCAT(meal_type), COUNT(*) 
+                 FROM meals 
+                 WHERE username=? AND strftime('%Y-%m', date)=strftime('%Y-%m', 'now')
+                 GROUP BY date""", (session['username'],))
+    meals = c.fetchall()
+    c.execute("""SELECT date, cost, details 
+                 FROM bazar 
+                 WHERE username=? AND strftime('%Y-%m', date)=strftime('%Y-%m', 'now')""", 
               (session['username'],))
-    rows = c.fetchall()
+    bazars = c.fetchall()
     conn.close()
-    return {
-        "summary": [
-            {"date": row[0], "meal_type": row[1], "count": row[2]} for row in rows
-        ]
-    }
+    return jsonify({"meals": meals, "bazar": bazars})
+
+@app.route('/summary/global')
+def global_summary():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""SELECT username, date, GROUP_CONCAT(meal_type), COUNT(*) 
+                 FROM meals 
+                 WHERE strftime('%Y-%m', date)=strftime('%Y-%m', 'now') 
+                 GROUP BY username, date""")
+    meals = c.fetchall()
+    c.execute("""SELECT username, date, cost, details 
+                 FROM bazar 
+                 WHERE strftime('%Y-%m', date)=strftime('%Y-%m', 'now')""")
+    bazars = c.fetchall()
+    conn.close()
+    return jsonify({"meals": meals, "bazar": bazars})
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
+
+# init the db
 init_db()
+
 if __name__ == '__main__':
-    
     app.run(host='0.0.0.0', port=10000)
