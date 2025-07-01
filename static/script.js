@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const bazarForm = document.getElementById("bazarForm");
     const personalSummaryBtn = document.getElementById("personalSummaryBtn");
     const globalSummaryBtn = document.getElementById("globalSummaryBtn");
+    const calculateCostBtn = document.getElementById("calculateCostBtn");
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
@@ -80,42 +81,74 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    if (calculateCostBtn) {
+        calculateCostBtn.addEventListener("click", async function () {
+            const res = await fetch("/summary/costs");
+            const result = document.getElementById("costResult");
+            result.innerHTML = "";
+
+            if (res.ok) {
+                const data = await res.json();
+                const table = document.createElement("table");
+
+                const headerRow = document.createElement("tr");
+                ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
+                    const th = document.createElement("th");
+                    th.innerText = h;
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(headerRow);
+
+                data.costs.forEach(row => {
+                    const tr = document.createElement("tr");
+                    row.forEach(val => {
+                        const td = document.createElement("td");
+                        td.innerText = val;
+                        tr.appendChild(td);
+                    });
+                    table.appendChild(tr);
+                });
+
+                result.appendChild(table);
+            } else {
+                result.innerText = "Failed to calculate cost.";
+            }
+        });
+    }
+
     function generateSummaryTable(summary, isPersonal) {
-    const table = document.createElement("table");
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
 
-    const headers = isPersonal
-        ? ["Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"]
-        : ["Username", "Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"];
+        const headers = isPersonal
+            ? ["Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"]
+            : ["Username", "Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"];
 
-    headers.forEach(h => {
-        const th = document.createElement("th");
-        th.innerText = h;
-        headerRow.appendChild(th);
-    });
-
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-    const tbody = document.createElement("tbody");
-
-    summary.forEach(row => {
-        const tr = document.createElement("tr");
-        const values = isPersonal
-            ? [row[1], row[2], row[3], row[4], row[5], row[6]]  // skip username
-            : row;
-
-        values.forEach(val => {
-            const td = document.createElement("td");
-            td.innerText = val;
-            tr.appendChild(td);
+        headers.forEach(h => {
+            const th = document.createElement("th");
+            th.innerText = h;
+            headerRow.appendChild(th);
         });
 
-        tbody.appendChild(tr);
-    });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = document.createElement("tbody");
 
-    table.appendChild(tbody);
-    return table;
-}
+        summary.forEach(row => {
+            const tr = document.createElement("tr");
+            const values = isPersonal ? row.slice(1) : row;
 
+            values.forEach(val => {
+                const td = document.createElement("td");
+                td.innerText = val;
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        return table;
+    }
 });
