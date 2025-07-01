@@ -1,64 +1,205 @@
+/* General Body Styles */
 body {
-    background: #f4f4f8;
+    background: linear-gradient(to right, #dff9fb, #c7ecee);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
+    min-height: 100vh;
 }
 
+/* Centering Content for Login/Register */
 .form-container {
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    padding: 30px 25px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     width: 90%;
     max-width: 400px;
     text-align: center;
+    margin: 40px auto;
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .form-container h2 {
     margin-bottom: 20px;
-    color: #333;
+    font-size: 28px;
+    color: #2d3436;
 }
 
 .form-container input {
     width: 100%;
-    padding: 12px 10px;
+    padding: 14px 12px;
     margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    border: 1px solid #dfe6e9;
+    border-radius: 8px;
     font-size: 16px;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease;
+}
+
+.form-container input:focus {
+    outline: none;
+    border-color: #00cec9;
+    background-color: #ffffff;
 }
 
 .form-container button {
     width: 100%;
-    padding: 12px;
-    background-color: #00b894;
+    padding: 14px;
+    background: #00cec9;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
     transition: background 0.3s ease;
+    margin-top: 10px;
 }
 
 .form-container button:hover {
-    background-color: #019875;
+    background-color: #01a3a4;
 }
 
 .form-switch {
-    margin-top: 15px;
+    margin-top: 18px;
     font-size: 14px;
+    color: #636e72;
 }
 
 .form-switch a {
     color: #00b894;
     text-decoration: none;
+    font-weight: bold;
 }
 
 .form-switch a:hover {
     text-decoration: underline;
+}
+
+/* Dashboard Container */
+.container {
+    padding: 20px;
+    max-width: 960px;
+    margin: auto;
+}
+
+/* Headings */
+h1, h2 {
+    color: #2d3436;
+    margin-bottom: 10px;
+}
+
+/* Form Groups */
+.checkbox-group label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+input[type="number"], textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 15px;
+    border: 1px solid #dcdde1;
+    border-radius: 6px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+/* Buttons */
+button {
+    background-color: #00b894;
+    color: white;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+button:hover {
+    background-color: #019875;
+}
+
+/* Result Text */
+.result {
+    margin-top: 10px;
+    color: #0984e3;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    overflow-x: auto;
+    display: block;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #dfe6e9;
+}
+
+th {
+    background-color: #00cec9;
+    color: white;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: #f1f2f6;
+}
+
+/* Responsive Table Wrappers */
+#personalSummary,
+#globalSummary,
+#costResult {
+    overflow-x: auto;
+}
+
+/* Logout link */
+#logout {
+    display: inline-block;
+    margin-top: 30px;
+    text-decoration: none;
+    color: #d63031;
+    font-weight: bold;
+}
+
+#logout:hover {
+    text-decoration: underline;
+}
+
+/* Mobile Layout */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    table, thead, tbody, th, td, tr {
+        font-size: 14px;
+    }
+
+    h1, h2 {
+        font-size: 22px;
+    }
+
+    button {
+        font-size: 15px;
+        padding: 10px 14px;
+    }
 }
