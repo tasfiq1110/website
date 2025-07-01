@@ -4,80 +4,93 @@ document.addEventListener("DOMContentLoaded", function () {
     const personalSummaryBtn = document.getElementById("personalSummaryBtn");
     const globalSummaryBtn = document.getElementById("globalSummaryBtn");
 
-    mealForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
+    if (mealForm) {
+        mealForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
 
-        const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
-        const values = Array.from(checkboxes).map(cb => cb.value);
+            const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
+            const values = Array.from(checkboxes).map(cb => cb.value);
 
-        if (values.length === 0) {
-            document.getElementById("mealResult").innerText = "Please select at least one meal.";
-            return;
-        }
+            if (values.length === 0) {
+                document.getElementById("mealResult").innerText = "Please select at least one meal.";
+                return;
+            }
 
-        const res = await fetch("/submit_meal", {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ meals: values })
+            const formData = new FormData();
+            values.forEach(meal => formData.append('meal', meal));
+
+            const res = await fetch("/submit_meal", {
+                method: "POST",
+                body: formData
+            });
+
+            const text = await res.text();
+            document.getElementById("mealResult").innerText = text;
         });
+    }
 
-        const text = await res.text();
-        document.getElementById("mealResult").innerText = text;
-    });
+    if (bazarForm) {
+        bazarForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const cost = document.getElementById("cost").value;
+            const details = document.getElementById("details").value;
 
-    bazarForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const cost = document.getElementById("cost").value;
-        const details = document.getElementById("details").value;
+            const formData = new FormData();
+            formData.append('cost', cost);
+            formData.append('details', details);
 
-        const res = await fetch("/submit_bazar", {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ cost, details })
+            const res = await fetch("/submit_bazar", {
+                method: "POST",
+                body: formData
+            });
+
+            const text = await res.text();
+            document.getElementById("bazarResult").innerText = text;
         });
+    }
 
-        const text = await res.text();
-        document.getElementById("bazarResult").innerText = text;
-    });
+    if (personalSummaryBtn) {
+        personalSummaryBtn.addEventListener("click", async function () {
+            const res = await fetch("/summary/personal");
+            const result = document.getElementById("personalSummary");
+            result.innerHTML = "";
 
-    personalSummaryBtn.addEventListener("click", async function () {
-        const res = await fetch("/summary/personal");
-        const result = document.getElementById("personalSummary");
-        result.innerHTML = "";
+            if (res.ok) {
+                const data = await res.json();
+                const table = generateSummaryTable(data.meals, data.bazar, true);
+                result.appendChild(table);
+            } else {
+                result.innerText = "Failed to load summary.";
+            }
+        });
+    }
 
-        if (res.ok) {
-            const data = await res.json();
-            const table = generateSummaryTable(data.summary);
-            result.appendChild(table);
-        } else {
-            result.innerText = "Failed to load summary.";
-        }
-    });
+    if (globalSummaryBtn) {
+        globalSummaryBtn.addEventListener("click", async function () {
+            const res = await fetch("/summary/global");
+            const result = document.getElementById("globalSummary");
+            result.innerHTML = "";
 
-    globalSummaryBtn.addEventListener("click", async function () {
-        const res = await fetch("/summary/global");
-        const result = document.getElementById("globalSummary");
-        result.innerHTML = "";
+            if (res.ok) {
+                const data = await res.json();
+                const table = generateSummaryTable(data.meals, data.bazar, false);
+                result.appendChild(table);
+            } else {
+                result.innerText = "Failed to load summary.";
+            }
+        });
+    }
 
-        if (res.ok) {
-            const data = await res.json();
-            const table = generateSummaryTable(data.summary);
-            result.appendChild(table);
-        } else {
-            result.innerText = "Failed to load summary.";
-        }
-    });
-
-    function generateSummaryTable(data) {
+    function generateSummaryTable(meals, bazars, isPersonal) {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
 
-        ["Username", "Date", "Meal", "Count", "Status", "Bazar ৳", "Details"].forEach(h => {
+        const headers = isPersonal
+            ? ["Date", "Meal", "Count", "Modified", "Bazar ৳", "Details"]
+            : ["Username", "Date", "Meal", "Count", "Modified", "Bazar ৳", "Details"];
+
+        headers.forEach(h => {
             const th = document.createElement("th");
             th.innerText = h;
             headerRow.appendChild(th);
@@ -85,15 +98,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
         thead.appendChild(headerRow);
         table.appendChild(thead);
-
         const tbody = document.createElement("tbody");
 
-        data.forEach(row => {
+        meals.forEach(meal => {
             const tr = document.createElement("tr");
+            const values = isPersonal
+                ? [meal[0], meal[1], meal[2], meal[3] ? 'Yes' : '', '', '']
+                : [meal[0], meal[1], meal[2], meal[3], meal[4] ? 'Yes' : '', '', ''];
 
-            const [username, date, meal, count, status, cost, details] = row;
+            values.forEach(val => {
+                const td = document.createElement("td");
+                td.innerText = val;
+                tr.appendChild(td);
+            });
 
-            [username, date, meal, count, status || '', cost || '', details || ''].forEach(val => {
+            tbody.appendChild(tr);
+        });
+
+        bazars.forEach(bazar => {
+            const tr = document.createElement("tr");
+            const values = isPersonal
+                ? [bazar[0], '', '', '', bazar[1], bazar[2]]
+                : [bazar[0], bazar[1], '', '', bazar[2], bazar[3]];
+
+            values.forEach(val => {
                 const td = document.createElement("td");
                 td.innerText = val;
                 tr.appendChild(td);
