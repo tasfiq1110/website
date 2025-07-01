@@ -16,12 +16,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const formData = new FormData();
-            values.forEach(meal => formData.append('meal', meal));
-
             const res = await fetch("/submit_meal", {
                 method: "POST",
-                body: formData
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ meals: values })
             });
 
             const text = await res.text();
@@ -35,13 +35,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const cost = document.getElementById("cost").value;
             const details = document.getElementById("details").value;
 
-            const formData = new FormData();
-            formData.append('cost', cost);
-            formData.append('details', details);
-
             const res = await fetch("/submit_bazar", {
                 method: "POST",
-                body: formData
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ cost, details })
             });
 
             const text = await res.text();
@@ -57,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (res.ok) {
                 const data = await res.json();
-                const table = generateSummaryTable(data.meals, data.bazar, true);
+                const table = generateSummaryTable(data.summary, true);
                 result.appendChild(table);
             } else {
                 result.innerText = "Failed to load summary.";
@@ -73,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (res.ok) {
                 const data = await res.json();
-                const table = generateSummaryTable(data.meals, data.bazar, false);
+                const table = generateSummaryTable(data.summary, false);
                 result.appendChild(table);
             } else {
                 result.innerText = "Failed to load summary.";
@@ -81,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function generateSummaryTable(meals, bazars, isPersonal) {
+    function generateSummaryTable(data, isPersonal) {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
@@ -98,35 +97,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         thead.appendChild(headerRow);
         table.appendChild(thead);
+
         const tbody = document.createElement("tbody");
 
-        meals.forEach(meal => {
+        data.forEach(row => {
             const tr = document.createElement("tr");
-            const values = isPersonal
-                ? [meal[0], meal[1], meal[2], meal[3] ? 'Yes' : '', '', '']
-                : [meal[0], meal[1], meal[2], meal[3], meal[4] ? 'Yes' : '', '', ''];
-
-            values.forEach(val => {
+            row.forEach(val => {
                 const td = document.createElement("td");
                 td.innerText = val;
                 tr.appendChild(td);
             });
-
-            tbody.appendChild(tr);
-        });
-
-        bazars.forEach(bazar => {
-            const tr = document.createElement("tr");
-            const values = isPersonal
-                ? [bazar[0], '', '', '', bazar[1], bazar[2]]
-                : [bazar[0], bazar[1], '', '', bazar[2], bazar[3]];
-
-            values.forEach(val => {
-                const td = document.createElement("td");
-                td.innerText = val;
-                tr.appendChild(td);
-            });
-
             tbody.appendChild(tr);
         });
 
