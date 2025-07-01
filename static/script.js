@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
 
             if (values.length === 0) {
-                document.getElementById("mealResult").innerText = "Please select at least one meal.";
+                showToast("Please select at least one meal.", "error");
                 return;
             }
 
@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const text = await res.text();
             document.getElementById("mealResult").innerText = text;
+            showToast(text, res.ok ? "success" : "error");
         });
     }
 
@@ -50,6 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const text = await res.text();
             document.getElementById("bazarResult").innerText = text;
+            showToast(text, res.ok ? "success" : "error");
         });
     }
 
@@ -66,6 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 result.appendChild(table);
             } else {
                 result.innerText = "Failed to load summary.";
+                showToast("Failed to load personal summary", "error");
             }
         });
     }
@@ -83,6 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 result.appendChild(table);
             } else {
                 result.innerText = "Failed to load summary.";
+                showToast("Failed to load global summary", "error");
             }
         });
     }
@@ -128,6 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 result.appendChild(wrapper);
             } else {
                 result.innerText = "Failed to calculate cost.";
+                showToast("Cost calculation failed", "error");
             }
         });
     }
@@ -167,5 +172,17 @@ document.addEventListener("DOMContentLoaded", function () {
         wrapper.className = "table-wrapper";
         wrapper.appendChild(table);
         return wrapper;
+    }
+
+    function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        if (!toast) return;
+
+        toast.className = `toast show ${type}`;
+        toast.innerText = message;
+
+        setTimeout(() => {
+            toast.className = "toast"; // hide it after 3s
+        }, 3000);
     }
 });
