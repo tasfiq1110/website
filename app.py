@@ -22,6 +22,7 @@ def init_db():
                         username TEXT NOT NULL,
                         date TEXT NOT NULL,
                         meal_type TEXT NOT NULL,
+                        is_modified INTEGER DEFAULT 0,
                         timestamp TEXT NOT NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS bazar (
@@ -29,20 +30,20 @@ def init_db():
                         username TEXT NOT NULL,
                         date TEXT NOT NULL,
                         cost INTEGER NOT NULL,
-                        details TEXT,
+                        details TEXT NOT NULL,
                         timestamp TEXT NOT NULL
                     )''')
         conn.commit()
         conn.close()
 
 @app.route('/')
-def register_page():
+def home():
     if 'username' in session:
         return redirect(url_for('dashboard'))
     return render_template("register.html")
 
 @app.route('/register', methods=['POST'])
-def register_user():
+def register():
     username = request.form['username']
     password = request.form['password']
     conn = sqlite3.connect(DB_NAME)
@@ -81,86 +82,102 @@ def login_user():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login_page'))
-    return render_template("dashboard.html", username=session['username'])
+    return render_template("dashboard.html")
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
     if 'username' not in session:
         return "Unauthorized", 401
-    meal_types = request.form.getlist('meal[]')
+    username = session['username']
+    selected_meals = request.form.getlist('meal')
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
+    modified_flag = 0
 
-    c.execute("DELETE FROM meals WHERE username=? AND date=?", (session['username'], date))  # overwrite
-    for meal in meal_types:
-        c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)",
-                  (session['username'], date, meal, timestamp))
+    for meal in selected_meals:
+        c.execute("SELECT * FROM meals WHERE username=? AND date=? AND meal_type=?", (username, date, meal))
+        exists = c.fetchone()
+        if exists:
+            c.execute("UPDATE meals SET is_modified=1, timestamp=? WHERE id=?", (timestamp, exists[0]))
+            modified_flag = 1
+        else:
+            c.execute("INSERT INTO meals (username, date, meal_type, is_modified, timestamp) VALUES (?, ?, ?, 0, ?)",
+                      (username, date, meal, timestamp))
+
     conn.commit()
     conn.close()
-    return "Meal submitted successfully"
+
+    return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
     if 'username' not in session:
         return "Unauthorized", 401
-    cost = request.form['cost']
+    username = session['username']
+    cost = int(request.form['cost'])
     details = request.form['details']
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("INSERT INTO bazar (username, date, cost, details, timestamp) VALUES (?, ?, ?, ?, ?)",
-              (session['username'], date, cost, details, timestamp))
+              (username, date, cost, details, timestamp))
     conn.commit()
     conn.close()
-    return "Bazar info submitted"
+    return "Bazar submitted"
 
 @app.route('/summary/personal')
 def personal_summary():
     if 'username' not in session:
         return "Unauthorized", 401
+    username = session['username']
+    now = datetime.now()
+    current_month = now.strftime("%Y-%m")
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""SELECT date, GROUP_CONCAT(meal_type), COUNT(*) 
-                 FROM meals 
-                 WHERE username=? AND strftime('%Y-%m', date)=strftime('%Y-%m', 'now')
-                 GROUP BY date""", (session['username'],))
+    c.execute("""SELECT date, meal_type, COUNT(*), MAX(is_modified)
+                 FROM meals WHERE username=? AND date LIKE ?
+                 GROUP BY date, meal_type""", (username, f"{current_month}-%"))
     meals = c.fetchall()
-    c.execute("""SELECT date, cost, details 
-                 FROM bazar 
-                 WHERE username=? AND strftime('%Y-%m', date)=strftime('%Y-%m', 'now')""", 
-              (session['username'],))
-    bazars = c.fetchall()
+
+    c.execute("""SELECT date, cost, details
+                 FROM bazar WHERE username=? AND date LIKE ?""", (username, f"{current_month}-%"))
+    bazar = c.fetchall()
     conn.close()
-    return jsonify({"meals": meals, "bazar": bazars})
+
+    return jsonify({"meals": meals, "bazar": bazar})
 
 @app.route('/summary/global')
 def global_summary():
+    now = datetime.now()
+    current_month = now.strftime("%Y-%m")
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""SELECT username, date, GROUP_CONCAT(meal_type), COUNT(*) 
-                 FROM meals 
-                 WHERE strftime('%Y-%m', date)=strftime('%Y-%m', 'now') 
-                 GROUP BY username, date""")
+    c.execute("""SELECT username, date, meal_type, COUNT(*), MAX(is_modified)
+                 FROM meals WHERE date LIKE ?
+                 GROUP BY username, date, meal_type""", (f"{current_month}-%",))
     meals = c.fetchall()
-    c.execute("""SELECT username, date, cost, details 
-                 FROM bazar 
-                 WHERE strftime('%Y-%m', date)=strftime('%Y-%m', 'now')""")
-    bazars = c.fetchall()
+
+    c.execute("""SELECT username, date, cost, details
+                 FROM bazar WHERE date LIKE ?""", (f"{current_month}-%",))
+    bazar = c.fetchall()
     conn.close()
-    return jsonify({"meals": meals, "bazar": bazars})
+
+    return jsonify({"meals": meals, "bazar": bazar})
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
-
-# init the db
 init_db()
-
 if __name__ == '__main__':
+    
     app.run(host='0.0.0.0', port=10000)
