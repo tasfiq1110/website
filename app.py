@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import sqlite3
 import os
 from datetime import datetime
+from datetime import timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -43,30 +44,31 @@ def init_db():
 init_db()
 
 
-def auto_fill_meals():
-    today = datetime.now().strftime("%Y-%m-%d")
+def auto_add_meals():
+    from datetime import datetime
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Get all usernames
     c.execute("SELECT username FROM users")
     users = [row[0] for row in c.fetchall()]
 
-    for user in users:
-        c.execute("SELECT COUNT(*) FROM meals WHERE username=? AND date=?", (user, today))
-        count = c.fetchone()[0]
-
-        if count == 0:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            for meal_type in ['Lunch', 'Dinner']:
-                c.execute("""
-                    INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                    VALUES (?, ?, ?, 0, ?)
-                """, (user, today, meal_type, now))
+    for username in users:
+        # Check if the user has submitted any meal for yesterday
+        c.execute("SELECT COUNT(*) FROM meals WHERE username=? AND date=?", (username, yesterday))
+        meal_count = c.fetchone()[0]
+        if meal_count == 0:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for meal_type in ["Lunch", "Dinner"]:  # Assuming 2 default meals
+                c.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                             VALUES (?, ?, ?, 0, ?)""", (username, yesterday, meal_type, timestamp))
 
     conn.commit()
     conn.close()
 
-
+# Register the scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(auto_add_meals, CronTrigger(hour=0, minute=0))
 scheduler.start()
