@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Use a secure random secret
+app.secret_key = os.urandom(24)  # Secure random secret key
 
 DB_NAME = "database.db"
 
@@ -73,7 +73,7 @@ def login_user():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login_page'))
-    return render_template("dashboard.html")
+    return render_template("dashboard.html", username=session['username'])
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
@@ -112,7 +112,6 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
 
-init_db()
-
 if __name__ == '__main__':
+    init_db()
     app.run(host='0.0.0.0', port=10000)
