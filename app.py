@@ -87,6 +87,53 @@ def dashboard():
         return redirect(url_for('login_page'))
     return render_template("dashboard.html")
 
+@app.route('/summary/cost')
+def cost_summary():
+    if 'username' not in session:
+        return "Unauthorized", 401
+
+    now = datetime.now()
+    current_month = now.strftime("%Y-%m")
+
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    # Total bazar cost for the month
+    c.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE ?", (f"{current_month}-%",))
+    total_bazar_cost = c.fetchone()[0] or 0
+
+    # Total number of all meals in the month
+    c.execute("SELECT COUNT(*) FROM meals WHERE date LIKE ?", (f"{current_month}-%",))
+    total_meal_count = c.fetchone()[0] or 0
+
+    meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
+
+    # Each user's meal count
+    c.execute("""SELECT username, COUNT(*) FROM meals
+                 WHERE date LIKE ?
+                 GROUP BY username""", (f"{current_month}-%",))
+    user_data = c.fetchall()
+
+    results = []
+    for username, user_meal_count in user_data:
+        user_total_cost = round(user_meal_count * meal_unit_cost, 2)
+        results.append({
+            "username": username,
+            "meals": user_meal_count,
+            "cost": user_total_cost
+        })
+
+    conn.close()
+
+    return jsonify({
+        "month": current_month,
+        "total_bazar_cost": total_bazar_cost,
+        "total_meal_count": total_meal_count,
+        "meal_unit_cost": round(meal_unit_cost, 2),
+        "user_costs": results
+    })
+
+
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
     if 'username' not in session:
