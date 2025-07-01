@@ -89,21 +89,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (res.ok) {
                 const data = await res.json();
-                const table = document.createElement("table");
 
+                const unitCostText = document.createElement("p");
+                unitCostText.innerText = `Meal Unit Cost: ৳${data.meal_unit_cost.toFixed(2)}`;
+                result.appendChild(unitCostText);
+
+                const table = document.createElement("table");
                 const headerRow = document.createElement("tr");
+
                 ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
                     const th = document.createElement("th");
                     th.innerText = h;
                     headerRow.appendChild(th);
                 });
+
                 table.appendChild(headerRow);
 
-                data.costs.forEach(row => {
+                data.user_costs.forEach(row => {
                     const tr = document.createElement("tr");
-                    row.forEach(val => {
+                    const values = [
+                        row.username,
+                        row.meals,
+                        data.meal_unit_cost,
+                        row.cost
+                    ];
+                    values.forEach(val => {
                         const td = document.createElement("td");
-                        td.innerText = val;
+                        td.innerText = typeof val === "number" ? val.toFixed(2) : val;
                         tr.appendChild(td);
                     });
                     table.appendChild(tr);
@@ -133,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         thead.appendChild(headerRow);
         table.appendChild(thead);
+
         const tbody = document.createElement("tbody");
 
         summary.forEach(row => {
