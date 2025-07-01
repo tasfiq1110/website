@@ -4,11 +4,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const personalSummaryBtn = document.getElementById("personalSummaryBtn");
     const globalSummaryBtn = document.getElementById("globalSummaryBtn");
     const calculateCostBtn = document.getElementById("calculateCostBtn");
-    const monthSelector = document.getElementById("monthSelector");
-
-    function getSelectedMonth() {
-        return monthSelector?.value || CURRENT_MONTH; // fallback from Jinja var
-    }
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
@@ -24,9 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const res = await fetch("/submit_meal", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ meals: values })
             });
 
@@ -43,9 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const res = await fetch("/submit_bazar", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cost, details })
             });
 
@@ -56,8 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (personalSummaryBtn) {
         personalSummaryBtn.addEventListener("click", async function () {
-            const selectedMonth = getSelectedMonth();
-            const res = await fetch(`/summary/personal?month=${selectedMonth}`);
+            const res = await fetch("/summary/personal");
             const result = document.getElementById("personalSummary");
             result.innerHTML = "";
 
@@ -73,8 +63,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (globalSummaryBtn) {
         globalSummaryBtn.addEventListener("click", async function () {
-            const selectedMonth = getSelectedMonth();
-            const res = await fetch(`/summary/global?month=${selectedMonth}`);
+            const res = await fetch("/summary/global");
             const result = document.getElementById("globalSummary");
             result.innerHTML = "";
 
@@ -90,8 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (calculateCostBtn) {
         calculateCostBtn.addEventListener("click", async function () {
-            const selectedMonth = getSelectedMonth();
-            const res = await fetch(`/summary/cost?month=${selectedMonth}`);
+            const res = await fetch("/summary/cost");
             const result = document.getElementById("costResult");
             result.innerHTML = "";
 
@@ -129,7 +117,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     table.appendChild(tr);
                 });
 
-                result.appendChild(table);
+                const wrapper = document.createElement("div");
+                wrapper.className = "table-wrapper";
+                wrapper.appendChild(table);
+                result.appendChild(wrapper);
             } else {
                 result.innerText = "Failed to calculate cost.";
             }
@@ -170,6 +161,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         table.appendChild(tbody);
-        return table;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-wrapper";
+        wrapper.appendChild(table);
+        return wrapper;
     }
 });
