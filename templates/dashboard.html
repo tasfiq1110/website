@@ -3,61 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard - Meal Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>Welcome, {{ session['username'] }}</h1>
 
-        <!-- Month Selector -->
-        <h3>Select Month:</h3>
-        <input type="month" id="monthSelector" value="{{ current_month }}">
-
         <!-- Meal Submission -->
-        <h2>Submit Today's Meal</h2>
-        <form id="mealForm">
-            <div class="checkbox-group">
-                <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
-                <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
-                <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
-            </div>
-            <button type="submit">Submit Meal</button>
-            <div id="mealResult" class="result"></div>
-        </form>
+        <section class="card">
+            <h2>Submit Today's Meal</h2>
+            <form id="mealForm">
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
+                    <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
+                    <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
+                </div>
+                <button type="submit">Submit Meal</button>
+                <div id="mealResult" class="result"></div>
+            </form>
+        </section>
 
         <!-- Bazar Cost -->
-        <h2>Submit Today's Bazar Cost</h2>
-        <form id="bazarForm">
-            <label for="cost">Amount (৳):</label>
-            <input type="number" id="cost" name="cost" required>
-            <label for="details">Details:</label>
-            <textarea id="details" name="details" required></textarea>
-            <button type="submit">Submit Bazar</button>
-            <div id="bazarResult" class="result"></div>
-        </form>
+        <section class="card">
+            <h2>Submit Today's Bazar Cost</h2>
+            <form id="bazarForm">
+                <label for="cost">Amount (৳):</label>
+                <input type="number" id="cost" name="cost" required>
+                <label for="details">Details:</label>
+                <textarea id="details" name="details" required></textarea>
+                <button type="submit">Submit Bazar</button>
+                <div id="bazarResult" class="result"></div>
+            </form>
+        </section>
 
-        <!-- Personal Summary -->
-        <h2>My Monthly Meal Summary</h2>
-        <button id="personalSummaryBtn">Show Personal Summary</button>
-        <div id="personalSummary"></div>
+        <!-- Month Picker -->
+        <section class="card">
+            <h2>Select Month</h2>
+            <input type="month" id="monthPicker" value="{{ '%Y-%m'|format(datetime.utcnow()) }}">
+        </section>
 
-        <!-- Global Summary -->
-        <h2>Global Monthly Meal Summary</h2>
-        <button id="globalSummaryBtn">Show Global Summary</button>
-        <div id="globalSummary"></div>
+        <!-- Summaries -->
+        <section class="card">
+            <h2>My Monthly Meal Summary</h2>
+            <button id="personalSummaryBtn">Show Personal Summary</button>
+            <div id="personalSummary" class="scrollable-table"></div>
+        </section>
 
-        <!-- Cost Calculation -->
-        <h2>Cost Calculation Per Person</h2>
-        <button id="calculateCostBtn">Calculate Monthly Cost</button>
-        <div id="costResult" class="result"></div>
+        <section class="card">
+            <h2>Global Monthly Meal Summary</h2>
+            <button id="globalSummaryBtn">Show Global Summary</button>
+            <div id="globalSummary" class="scrollable-table"></div>
+        </section>
+
+        <!-- Cost -->
+        <section class="card">
+            <h2>Cost Calculation Per Person</h2>
+            <button id="calculateCostBtn">Calculate Monthly Cost</button>
+            <div id="costResult" class="scrollable-table"></div>
+        </section>
 
         <!-- Logout -->
-        <a id="logout" href="/logout">Logout</a>
+        <a id="logout" href="/logout" class="logout">Logout</a>
     </div>
 
-    <script>
-        const CURRENT_MONTH = "{{ current_month }}";
-    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
