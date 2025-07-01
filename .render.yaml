@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: meal-tracker
+    name: MealChecker
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
