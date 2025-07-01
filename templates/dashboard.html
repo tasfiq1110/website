@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js"></script>
+</head>
+<body>
+    <h1>Welcome, {{ username }}</h1>
+    <form method="POST" action="/submit_meal">
+        <input type="text" name="meal" placeholder="Meal Type (e.g., breakfast)" required>
+        <button type="submit">Submit Meal</button>
+    </form>
+
+    <h2>Meal Summary</h2>
+    <button onclick="loadSummary()">Load Summary</button>
+    <pre id="summary"></pre>
+
+    <p><a href="/logout">Logout</a></p>
+</body>
+</html>
