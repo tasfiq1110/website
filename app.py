@@ -146,30 +146,50 @@ def submit_bazar():
 def personal_summary():
     if 'username' not in session:
         return "Unauthorized", 401
+
     username = session['username']
     now = datetime.now()
     current_month = now.strftime("%Y-%m")
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""SELECT date, meal_type, COUNT(*), MAX(is_modified)
-                 FROM meals WHERE username=? AND date LIKE ?
-                 GROUP BY date, meal_type""", (username, f"{current_month}-%"))
-    meals = c.fetchall()
 
-    c.execute("""SELECT date, cost, details
-                 FROM bazar WHERE username=? AND date LIKE ?""", (username, f"{current_month}-%"))
-    bazar = c.fetchall()
-    conn.close()
+    # Meals
+    c.execute("""
+        SELECT date, COUNT(meal_type), MAX(is_modified)
+        FROM meals
+        WHERE username = ? AND date LIKE ?
+        GROUP BY date
+    """, (username, f"{current_month}-%"))
+    meals = {row[0]: {"count": row[1], "modified": row[2]} for row in c.fetchall()}
 
+    # Bazar
+    c.execute("""
+        SELECT date, COUNT(*), SUM(cost), GROUP_CONCAT(details, '; ')
+        FROM bazar
+        WHERE username = ? AND date LIKE ?
+        GROUP BY date
+    """, (username, f"{current_month}-%"))
+    bazar = {row[0]: {"bazar_count": row[1], "total_cost": row[2], "details": row[3]} for row in c.fetchall()}
+
+    # Merge rows by date
+    all_dates = sorted(set(meals.keys()) | set(bazar.keys()))
     summary = []
-    for row in meals:
-        date, meal_type, count, modified = row
-        summary.append([username, date, meal_type, count, "Modified" if modified else "Normal", "", ""])
-    for row in bazar:
-        date, cost, details = row
-        summary.append([username, date, "", "", "", cost, details])
+    for date in all_dates:
+        m = meals.get(date, {"count": 0, "modified": 0})
+        b = bazar.get(date, {"bazar_count": 0, "total_cost": "", "details": ""})
+        summary.append([
+            username,
+            date,
+            m["count"],
+            "Yes" if m["modified"] else "No",
+            b["total_cost"],
+            b["details"],
+            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
+        ])
+
     return jsonify({"summary": summary})
+
 
 @app.route('/summary/global')
 def global_summary():
@@ -178,24 +198,50 @@ def global_summary():
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""SELECT username, date, meal_type, COUNT(*), MAX(is_modified)
-                 FROM meals WHERE date LIKE ?
-                 GROUP BY username, date, meal_type""", (f"{current_month}-%",))
-    meals = c.fetchall()
 
-    c.execute("""SELECT username, date, cost, details
-                 FROM bazar WHERE date LIKE ?""", (f"{current_month}-%",))
-    bazar = c.fetchall()
-    conn.close()
+    # Meals
+    c.execute("""
+        SELECT username, date, COUNT(meal_type), MAX(is_modified)
+        FROM meals
+        WHERE date LIKE ?
+        GROUP BY username, date
+    """, (f"{current_month}-%",))
+    meals = {}
+    for row in c.fetchall():
+        key = (row[0], row[1])
+        meals[key] = {"count": row[2], "modified": row[3]}
 
+    # Bazar
+    c.execute("""
+        SELECT username, date, COUNT(*), SUM(cost), GROUP_CONCAT(details, '; ')
+        FROM bazar
+        WHERE date LIKE ?
+        GROUP BY username, date
+    """, (f"{current_month}-%",))
+    bazar = {}
+    for row in c.fetchall():
+        key = (row[0], row[1])
+        bazar[key] = {"bazar_count": row[2], "total_cost": row[3], "details": row[4]}
+
+    # Merge rows by (username, date)
+    all_keys = sorted(set(meals.keys()) | set(bazar.keys()))
     summary = []
-    for row in meals:
-        username, date, meal_type, count, modified = row
-        summary.append([username, date, meal_type, count, "Modified" if modified else "Normal", "", ""])
-    for row in bazar:
-        username, date, cost, details = row
-        summary.append([username, date, "", "", "", cost, details])
+    for key in all_keys:
+        username, date = key
+        m = meals.get(key, {"count": 0, "modified": 0})
+        b = bazar.get(key, {"bazar_count": 0, "total_cost": "", "details": ""})
+        summary.append([
+            username,
+            date,
+            m["count"],
+            "Yes" if m["modified"] else "No",
+            b["total_cost"],
+            b["details"],
+            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
+        ])
+
     return jsonify({"summary": summary})
+
 
 @app.route('/logout')
 def logout():
