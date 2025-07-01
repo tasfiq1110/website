@@ -1,13 +1,13 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // Elements by ID
+document.addEventListener("DOMContentLoaded", function () {
   const registerForm = document.getElementById("registerForm");
   const loginForm = document.getElementById("loginForm");
   const mealForm = document.getElementById("mealForm");
   const summaryBtn = document.getElementById("summaryBtn");
+  const summaryResult = document.getElementById("summary");
 
   // Register
   if (registerForm) {
-    registerForm.addEventListener("submit", async (e) => {
+    registerForm.addEventListener("submit", async function (e) {
       e.preventDefault();
       const formData = new FormData(registerForm);
       try {
@@ -15,23 +15,22 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           body: formData
         });
-        const text = await response.text();
-        document.getElementById("registerResult").innerText = text;
 
-        if (text.toLowerCase().includes("successful")) {
-          setTimeout(() => {
-            window.location.href = "/login";
-          }, 1000);
+        if (response.redirected) {
+          window.location.href = response.url;
+        } else {
+          const text = await response.text();
+          document.getElementById("registerResult").innerText = text;
         }
-      } catch (err) {
-        document.getElementById("registerResult").innerText = "Error during registration.";
+      } catch (error) {
+        document.getElementById("registerResult").innerText = "Registration failed.";
       }
     });
   }
 
   // Login
   if (loginForm) {
-    loginForm.addEventListener("submit", async (e) => {
+    loginForm.addEventListener("submit", async function (e) {
       e.preventDefault();
       const formData = new FormData(loginForm);
       try {
@@ -39,23 +38,22 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           body: formData
         });
-        const text = await response.text();
-        document.getElementById("loginResult").innerText = text;
 
-        if (text.toLowerCase().includes("successful")) {
-          setTimeout(() => {
-            window.location.href = "/dashboard";
-          }, 1000);
+        if (response.redirected) {
+          window.location.href = response.url;
+        } else {
+          const text = await response.text();
+          document.getElementById("loginResult").innerText = text;
         }
-      } catch (err) {
+      } catch (error) {
         document.getElementById("loginResult").innerText = "Login failed.";
       }
     });
   }
 
-  // Submit Meal
+  // Meal submission
   if (mealForm) {
-    mealForm.addEventListener("submit", async (e) => {
+    mealForm.addEventListener("submit", async function (e) {
       e.preventDefault();
       const formData = new FormData(mealForm);
       try {
@@ -63,31 +61,32 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           body: formData
         });
+
         const text = await response.text();
         document.getElementById("mealResult").innerText = text;
-      } catch (err) {
-        document.getElementById("mealResult").innerText = "Error submitting meal.";
+      } catch (error) {
+        document.getElementById("mealResult").innerText = "Meal submission failed.";
       }
     });
   }
 
-  // Load Summary
-  if (summaryBtn) {
-    summaryBtn.addEventListener("click", async () => {
+  // Summary fetch
+  if (summaryBtn && summaryResult) {
+    summaryBtn.addEventListener("click", async function () {
       try {
         const response = await fetch("/summary");
         if (response.ok) {
           const data = await response.json();
-          let summary = data.map(
-            ([date, mealType, count]) =>
-              `📅 Date: ${date}, 🍽️ Meal: ${mealType}, 🔢 Count: ${count}`
-          ).join("\n");
-          document.getElementById("summaryResult").innerText = summary;
+          let summaryText = '';
+          data.summary.forEach(item => {
+            summaryText += `Date: ${item.date}, Meal: ${item.meal_type}, Count: ${item.count}\n`;
+          });
+          summaryResult.innerText = summaryText;
         } else {
-          document.getElementById("summaryResult").innerText = "❌ You must be logged in.";
+          summaryResult.innerText = "Unauthorized or error occurred.";
         }
-      } catch (err) {
-        document.getElementById("summaryResult").innerText = "Error loading summary.";
+      } catch (error) {
+        summaryResult.innerText = "Failed to load summary.";
       }
     });
   }
