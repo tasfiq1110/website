@@ -49,6 +49,7 @@
 
         input[type="number"],
         input[type="month"],
+        input[type="date"],
         textarea {
             width: 100%;
             padding: 0.6rem;
@@ -144,8 +145,10 @@
 
         <!-- Meal Submission -->
         <section>
-            <h2>Submit Today's Meal</h2>
+            <h2>Submit Meal</h2>
             <form id="mealForm">
+                <label for="mealDate">Select Date:</label>
+                <input type="date" id="mealDate" name="mealDate">
                 <div class="checkbox-group">
                     <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
                     <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
@@ -158,8 +161,10 @@
 
         <!-- Bazar Cost -->
         <section>
-            <h2>Submit Today's Bazar Cost</h2>
+            <h2>Submit Bazar Cost</h2>
             <form id="bazarForm">
+                <label for="bazarDate">Select Date:</label>
+                <input type="date" id="bazarDate" name="bazarDate">
                 <label for="cost">Amount (৳):</label>
                 <input type="number" id="cost" name="cost" required>
                 <label for="details">Details:</label>
