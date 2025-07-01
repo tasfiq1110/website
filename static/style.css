@@ -179,6 +179,30 @@ tr:nth-child(even) {
     color: #d63031;
     font-weight: bold;
 }
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #00c853;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.toast.error {
+    background-color: #d50000;
+}
+.toast.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 
 #logout:hover {
     text-decoration: underline;
