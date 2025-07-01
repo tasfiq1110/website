@@ -91,8 +91,14 @@ def dashboard():
 def submit_meal():
     if 'username' not in session:
         return "Unauthorized", 401
+
+    data = request.get_json()
+    if not data or 'meals' not in data:
+        return "Invalid data", 400
+
     username = session['username']
-    selected_meals = request.json.get('meals', [])
+    selected_meals = data['meals']
+
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -115,6 +121,7 @@ def submit_meal():
     conn.close()
 
     return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
+
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
