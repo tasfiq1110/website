@@ -1,32 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <title>Dashboard - Welcome</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="/static/script.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h2>Welcome, {{ username }}</h2>
+  <div class="container">
+    <h1>Welcome, {{ username }}</h1>
+    <a href="/logout" class="logout-btn">Logout</a>
 
-        <form id="mealForm">
-            <select name="meal" required>
-                <option value="">Select a meal</option>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-            </select>
-            <button type="submit">Submit Meal</button>
-        </form>
-        <p id="mealResult" class="result-text"></p>
-
-        <button id="summaryBtn">Show Meal Summary</button>
-        <pre id="summaryResult" class="summary-box"></pre>
-
+    <!-- Meal Submission Form -->
+    <section class="form-section">
+      <h2>Submit Today's Meal</h2>
+      <form id="mealForm">
+        <label><input type="checkbox" name="meal[]" value="Breakfast"> Breakfast</label>
+        <label><input type="checkbox" name="meal[]" value="Lunch"> Lunch</label>
+        <label><input type="checkbox" name="meal[]" value="Dinner"> Dinner</label>
         <br><br>
-        <a href="/logout">Logout</a>
-    </div>
+        <button type="submit">Submit Meal</button>
+        <p id="mealResult"></p>
+      </form>
+    </section>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- Bazar Submission -->
+    <section class="form-section">
+      <h2>Submit Today's Bazar</h2>
+      <form id="bazarForm">
+        <input type="number" name="cost" placeholder="Cost (e.g. 500)" required><br>
+        <textarea name="details" placeholder="Details (e.g. Rice, Egg, Oil)" required></textarea><br>
+        <button type="submit">Submit Bazar</button>
+        <p id="bazarResult"></p>
+      </form>
+    </section>
+
+    <!-- Summary Section -->
+    <section class="form-section">
+      <h2>View Summary</h2>
+      <button id="personalSummaryBtn">Personal Summary</button>
+      <button id="globalSummaryBtn">Global Summary</button>
+      <div id="summaryTable"></div>
+    </section>
+  </div>
 </body>
 </html>
