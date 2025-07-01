@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import sqlite3
-import os
+import sqlite3, os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'your_secret_key'  # Use a strong secret in production
 
 DB_NAME = "database.db"
 
@@ -13,38 +12,42 @@ def init_db():
         conn = sqlite3.connect(DB_NAME)
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT UNIQUE NOT NULL,
-                        password TEXT NOT NULL
-                    )''')
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )''')
         c.execute('''CREATE TABLE IF NOT EXISTS meals (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT NOT NULL,
-                        date TEXT NOT NULL,
-                        meal_type TEXT NOT NULL,
-                        timestamp TEXT NOT NULL
-                    )''')
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            date TEXT NOT NULL,
+            meal_type TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )''')
         conn.commit()
         conn.close()
 
 @app.route('/')
-def home():
-    return render_template("index.html")
+def login_page():
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+    return render_template("login.html")
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-    username = request.form['username']
-    password = request.form['password']
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    try:
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-        conn.commit()
-        return "Registered Successfully"
-    except sqlite3.IntegrityError:
-        return "Username already exists"
-    finally:
-        conn.close()
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        try:
+            c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            conn.commit()
+            return redirect(url_for('login_page'))
+        except sqlite3.IntegrityError:
+            return "Username already exists"
+        finally:
+            conn.close()
+    return render_template("register.html")
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -57,8 +60,19 @@ def login():
     conn.close()
     if user:
         session['username'] = username
-        return "Login Successful"
+        return redirect(url_for('dashboard'))
     return "Invalid Credentials"
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' not in session:
+        return redirect(url_for('login_page'))
+    return render_template("dashboard.html", username=session['username'])
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
@@ -70,27 +84,24 @@ def submit_meal():
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)", 
+    c.execute("INSERT INTO meals (username, date, meal_type, timestamp) VALUES (?, ?, ?, ?)",
               (session['username'], date, meal_type, timestamp))
     conn.commit()
     conn.close()
     return "Meal submitted"
 
-@app.route('/summary', methods=['GET'])
+@app.route('/summary')
 def summary():
     if 'username' not in session:
         return "Unauthorized", 401
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT date, meal_type, COUNT(*) FROM meals WHERE username=? GROUP BY date, meal_type", 
+    c.execute("SELECT date, meal_type, COUNT(*) FROM meals WHERE username=? GROUP BY date, meal_type",
               (session['username'],))
     rows = c.fetchall()
     conn.close()
     return jsonify(rows)
 
-# 🚀 Required for Render.com
-init_db()
-# 🧪 Local development support
 if __name__ == '__main__':
     init_db()
     app.run(host='0.0.0.0', port=10000)
