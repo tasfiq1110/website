@@ -89,10 +89,7 @@ def summary():
     return jsonify(rows)
 
 # 🚀 Required for Render.com
-def create_app():
-    init_db()
-    return app
-
+init_db()
 # 🧪 Local development support
 if __name__ == '__main__':
     init_db()
