@@ -1,67 +1,108 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const mealForm = document.getElementById("mealForm");
-  const bazarForm = document.getElementById("bazarForm");
-  const personalSummaryBtn = document.getElementById("personalSummaryBtn");
-  const globalSummaryBtn = document.getElementById("globalSummaryBtn");
-  const summaryTable = document.getElementById("summaryTable");
+document.addEventListener("DOMContentLoaded", function () {
+    const mealForm = document.getElementById("mealForm");
+    const bazarForm = document.getElementById("bazarForm");
+    const personalSummaryBtn = document.getElementById("personalSummaryBtn");
+    const globalSummaryBtn = document.getElementById("globalSummaryBtn");
 
-  mealForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = new FormData(mealForm);
-    const res = await fetch("/submit_meal", {
-      method: "POST",
-      body: formData
+    mealForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
+        const values = Array.from(checkboxes).map(cb => cb.value);
+
+        if (values.length === 0) {
+            document.getElementById("mealResult").innerText = "Please select at least one meal.";
+            return;
+        }
+
+        const res = await fetch("/submit_meal", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ meals: values })
+        });
+
+        const text = await res.text();
+        document.getElementById("mealResult").innerText = text;
     });
-    const text = await res.text();
-    document.getElementById("mealResult").innerText = text;
-  });
 
-  bazarForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = new FormData(bazarForm);
-    const res = await fetch("/submit_bazar", {
-      method: "POST",
-      body: formData
+    bazarForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const cost = document.getElementById("cost").value;
+        const details = document.getElementById("details").value;
+
+        const res = await fetch("/submit_bazar", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cost, details })
+        });
+
+        const text = await res.text();
+        document.getElementById("bazarResult").innerText = text;
     });
-    const text = await res.text();
-    document.getElementById("bazarResult").innerText = text;
-  });
 
-  personalSummaryBtn.addEventListener("click", () => loadSummary("/summary", "Personal"));
-  globalSummaryBtn.addEventListener("click", () => loadSummary("/summary_global", "Global"));
+    personalSummaryBtn.addEventListener("click", async function () {
+        const res = await fetch("/summary/personal");
+        const result = document.getElementById("personalSummary");
+        result.innerHTML = "";
 
-  async function loadSummary(endpoint, label) {
-    const res = await fetch(endpoint);
-    if (res.ok) {
-      const data = await res.json();
-      renderSummaryTable(data.summary, label);
-    } else {
-      summaryTable.innerHTML = "Failed to load summary.";
+        if (res.ok) {
+            const data = await res.json();
+            const table = generateSummaryTable(data.summary);
+            result.appendChild(table);
+        } else {
+            result.innerText = "Failed to load summary.";
+        }
+    });
+
+    globalSummaryBtn.addEventListener("click", async function () {
+        const res = await fetch("/summary/global");
+        const result = document.getElementById("globalSummary");
+        result.innerHTML = "";
+
+        if (res.ok) {
+            const data = await res.json();
+            const table = generateSummaryTable(data.summary);
+            result.appendChild(table);
+        } else {
+            result.innerText = "Failed to load summary.";
+        }
+    });
+
+    function generateSummaryTable(data) {
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+
+        ["Username", "Date", "Meal", "Count", "Status", "Bazar ৳", "Details"].forEach(h => {
+            const th = document.createElement("th");
+            th.innerText = h;
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+
+        data.forEach(row => {
+            const tr = document.createElement("tr");
+
+            const [username, date, meal, count, status, cost, details] = row;
+
+            [username, date, meal, count, status || '', cost || '', details || ''].forEach(val => {
+                const td = document.createElement("td");
+                td.innerText = val;
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        return table;
     }
-  }
-
-  function renderSummaryTable(data, type) {
-    if (data.length === 0) {
-      summaryTable.innerHTML = `<p>No ${type} summary available for this month.</p>`;
-      return;
-    }
-
-    let html = `<h3>${type} Summary for This Month</h3>`;
-    html += `<table><thead><tr><th>Date</th><th>User</th><th>Meal Type</th><th>Count</th><th>Modified</th><th>Bazar</th></tr></thead><tbody>`;
-
-    data.forEach(row => {
-      const [date, username, meal, count, modified, bazarCost, bazarDetails] = row;
-      html += `<tr>
-        <td>${date}</td>
-        <td>${username || '-'}</td>
-        <td>${meal || '-'}</td>
-        <td>${count || '-'}</td>
-        <td>${modified ? 'Yes' : 'No'}</td>
-        <td>${bazarCost ? `${bazarCost} - ${bazarDetails}` : '-'}</td>
-      </tr>`;
-    });
-
-    html += "</tbody></table>";
-    summaryTable.innerHTML = html;
-  }
 });
