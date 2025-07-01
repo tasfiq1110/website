@@ -36,14 +36,20 @@ def init_db():
         conn.commit()
         conn.close()
 
+# ✅ RUN INIT ON IMPORT (so it works even under Gunicorn)
+init_db()
+
 @app.route('/')
 def home():
     if 'username' in session:
         return redirect(url_for('dashboard'))
     return render_template("register.html")
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'GET':
+        return render_template("register.html")
+
     username = request.form['username']
     password = request.form['password']
     conn = sqlite3.connect(DB_NAME)
@@ -58,14 +64,11 @@ def register():
     finally:
         conn.close()
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    if 'username' in session:
-        return redirect(url_for('dashboard'))
-    return render_template("login.html")
+    if request.method == 'GET':
+        return render_template("login.html")
 
-@app.route('/login', methods=['POST'])
-def login_user():
     username = request.form['username']
     password = request.form['password']
     conn = sqlite3.connect(DB_NAME)
@@ -89,7 +92,7 @@ def submit_meal():
     if 'username' not in session:
         return "Unauthorized", 401
     username = session['username']
-    selected_meals = request.form.getlist('meal')
+    selected_meals = request.json.get('meals', [])
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -118,8 +121,8 @@ def submit_bazar():
     if 'username' not in session:
         return "Unauthorized", 401
     username = session['username']
-    cost = int(request.form['cost'])
-    details = request.form['details']
+    cost = int(request.json['cost'])
+    details = request.json['details']
     now = datetime.now()
     date = now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -152,7 +155,14 @@ def personal_summary():
     bazar = c.fetchall()
     conn.close()
 
-    return jsonify({"meals": meals, "bazar": bazar})
+    summary = []
+    for row in meals:
+        date, meal_type, count, modified = row
+        summary.append([username, date, meal_type, count, "Modified" if modified else "Normal", "", ""])
+    for row in bazar:
+        date, cost, details = row
+        summary.append([username, date, "", "", "", cost, details])
+    return jsonify({"summary": summary})
 
 @app.route('/summary/global')
 def global_summary():
@@ -171,13 +181,20 @@ def global_summary():
     bazar = c.fetchall()
     conn.close()
 
-    return jsonify({"meals": meals, "bazar": bazar})
+    summary = []
+    for row in meals:
+        username, date, meal_type, count, modified = row
+        summary.append([username, date, meal_type, count, "Modified" if modified else "Normal", "", ""])
+    for row in bazar:
+        username, date, cost, details = row
+        summary.append([username, date, "", "", "", cost, details])
+    return jsonify({"summary": summary})
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
-init_db()
+
+# ✅ Keep this block so local testing works
 if __name__ == '__main__':
-    
-    app.run(host='0.0.0.0', port=10000)
+    app.run(debug=True, port=5000)
