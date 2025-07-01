@@ -2,11 +2,14 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import sqlite3
 import os
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.daily import DailyTrigger
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 DB_NAME = "database.db"
+
 
 def init_db():
     if not os.path.exists(DB_NAME):
@@ -36,13 +39,45 @@ def init_db():
         conn.commit()
         conn.close()
 
+
 init_db()
+
+
+def auto_fill_meals():
+    today = datetime.now().strftime("%Y-%m-%d")
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    c.execute("SELECT username FROM users")
+    users = [row[0] for row in c.fetchall()]
+
+    for user in users:
+        c.execute("SELECT COUNT(*) FROM meals WHERE username=? AND date=?", (user, today))
+        count = c.fetchone()[0]
+
+        if count == 0:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            for meal_type in ['Lunch', 'Dinner']:
+                c.execute("""
+                    INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                    VALUES (?, ?, ?, 0, ?)
+                """, (user, today, meal_type, now))
+
+    conn.commit()
+    conn.close()
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(auto_fill_meals, DailyTrigger(hour=0, minute=0))
+scheduler.start()
+
 
 @app.route('/')
 def home():
     if 'username' in session:
         return redirect(url_for('dashboard'))
     return render_template("register.html")
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -63,6 +98,7 @@ def register():
     finally:
         conn.close()
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
     if request.method == 'GET':
@@ -80,53 +116,13 @@ def login_page():
         return redirect(url_for('dashboard'))
     return "Invalid Credentials"
 
+
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login_page'))
     return render_template("dashboard.html")
 
-@app.route('/summary/cost')
-def cost_summary():
-    if 'username' not in session:
-        return "Unauthorized", 401
-
-    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-
-    c.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE ?", (f"{month}-%",))
-    total_bazar_cost = c.fetchone()[0] or 0
-
-    c.execute("SELECT COUNT(*) FROM meals WHERE date LIKE ?", (f"{month}-%",))
-    total_meal_count = c.fetchone()[0] or 0
-
-    meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
-
-    c.execute("""SELECT username, COUNT(*) FROM meals
-                 WHERE date LIKE ?
-                 GROUP BY username""", (f"{month}-%",))
-    user_data = c.fetchall()
-
-    results = []
-    for username, user_meal_count in user_data:
-        user_total_cost = round(user_meal_count * meal_unit_cost, 2)
-        results.append({
-            "username": username,
-            "meals": user_meal_count,
-            "cost": user_total_cost
-        })
-
-    conn.close()
-
-    return jsonify({
-        "month": month,
-        "total_bazar_cost": total_bazar_cost,
-        "total_meal_count": total_meal_count,
-        "meal_unit_cost": round(meal_unit_cost, 2),
-        "user_costs": results
-    })
 
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
@@ -139,10 +135,8 @@ def submit_meal():
 
     username = session['username']
     selected_meals = data['meals']
-
     now = datetime.now()
     date = request.json.get("date") or now.strftime("%Y-%m-%d")
-
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
     conn = sqlite3.connect(DB_NAME)
@@ -164,6 +158,7 @@ def submit_meal():
 
     return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
 
+
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
     if 'username' not in session:
@@ -182,6 +177,7 @@ def submit_bazar():
     conn.commit()
     conn.close()
     return "Bazar submitted"
+
 
 @app.route('/summary/personal')
 def personal_summary():
@@ -226,6 +222,7 @@ def personal_summary():
         ])
 
     return jsonify({"summary": summary})
+
 
 @app.route('/summary/global')
 def global_summary():
@@ -274,10 +271,55 @@ def global_summary():
 
     return jsonify({"summary": summary})
 
+
+@app.route('/summary/cost')
+def cost_summary():
+    if 'username' not in session:
+        return "Unauthorized", 401
+
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
+
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    c.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE ?", (f"{month}-%",))
+    total_bazar_cost = c.fetchone()[0] or 0
+
+    c.execute("SELECT COUNT(*) FROM meals WHERE date LIKE ?", (f"{month}-%",))
+    total_meal_count = c.fetchone()[0] or 0
+
+    meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
+
+    c.execute("""SELECT username, COUNT(*) FROM meals
+                 WHERE date LIKE ?
+                 GROUP BY username""", (f"{month}-%",))
+    user_data = c.fetchall()
+
+    results = []
+    for username, user_meal_count in user_data:
+        user_total_cost = round(user_meal_count * meal_unit_cost, 2)
+        results.append({
+            "username": username,
+            "meals": user_meal_count,
+            "cost": user_total_cost
+        })
+
+    conn.close()
+
+    return jsonify({
+        "month": month,
+        "total_bazar_cost": total_bazar_cost,
+        "total_meal_count": total_meal_count,
+        "meal_unit_cost": round(meal_unit_cost, 2),
+        "user_costs": results
+    })
+
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
