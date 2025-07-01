@@ -4,13 +4,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const personalSummaryBtn = document.getElementById("personalSummaryBtn");
     const globalSummaryBtn = document.getElementById("globalSummaryBtn");
     const calculateCostBtn = document.getElementById("calculateCostBtn");
+    const mealDateInput = document.getElementById("mealDate");
+    const bazarDateInput = document.getElementById("bazarDate");
+    const monthPicker = document.getElementById("monthPicker");
+
+    function getSelectedMonth() {
+        return monthPicker && monthPicker.value ? monthPicker.value : new Date().toISOString().slice(0, 7);
+    }
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-
             const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
             const values = Array.from(checkboxes).map(cb => cb.value);
+            const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
 
             if (values.length === 0) {
                 document.getElementById("mealResult").innerText = "Please select at least one meal.";
@@ -20,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const res = await fetch("/submit_meal", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ meals: values })
+                body: JSON.stringify({ meals: values, date })
             });
 
             const text = await res.text();
@@ -33,11 +40,12 @@ document.addEventListener("DOMContentLoaded", function () {
             e.preventDefault();
             const cost = document.getElementById("cost").value;
             const details = document.getElementById("details").value;
+            const date = bazarDateInput && bazarDateInput.value ? bazarDateInput.value : null;
 
             const res = await fetch("/submit_bazar", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cost, details })
+                body: JSON.stringify({ cost, details, date })
             });
 
             const text = await res.text();
@@ -47,7 +55,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (personalSummaryBtn) {
         personalSummaryBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/personal");
+            const month = getSelectedMonth();
+            const res = await fetch(`/summary/personal?month=${month}`);
             const result = document.getElementById("personalSummary");
             result.innerHTML = "";
 
@@ -63,7 +72,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (globalSummaryBtn) {
         globalSummaryBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/global");
+            const month = getSelectedMonth();
+            const res = await fetch(`/summary/global?month=${month}`);
             const result = document.getElementById("globalSummary");
             result.innerHTML = "";
 
@@ -79,13 +89,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (calculateCostBtn) {
         calculateCostBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/cost");
+            const month = getSelectedMonth();
+            const res = await fetch(`/summary/cost?month=${month}`);
             const result = document.getElementById("costResult");
             result.innerHTML = "";
 
             if (res.ok) {
                 const data = await res.json();
-
                 const unitCostText = document.createElement("p");
                 unitCostText.innerText = `Meal Unit Cost: ৳${data.meal_unit_cost.toFixed(2)}`;
                 result.appendChild(unitCostText);
@@ -103,12 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 data.user_costs.forEach(row => {
                     const tr = document.createElement("tr");
-                    const values = [
-                        row.username,
-                        row.meals,
-                        data.meal_unit_cost,
-                        row.cost
-                    ];
+                    const values = [row.username, row.meals, data.meal_unit_cost, row.cost];
                     values.forEach(val => {
                         const td = document.createElement("td");
                         td.innerText = typeof val === "number" ? val.toFixed(2) : val;
@@ -146,22 +151,18 @@ document.addEventListener("DOMContentLoaded", function () {
         table.appendChild(thead);
 
         const tbody = document.createElement("tbody");
-
         summary.forEach(row => {
             const tr = document.createElement("tr");
             const values = isPersonal ? row.slice(1) : row;
-
             values.forEach(val => {
                 const td = document.createElement("td");
                 td.innerText = val;
                 tr.appendChild(td);
             });
-
             tbody.appendChild(tr);
         });
 
         table.appendChild(tbody);
-
         const wrapper = document.createElement("div");
         wrapper.className = "table-wrapper";
         wrapper.appendChild(table);
