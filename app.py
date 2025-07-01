@@ -141,7 +141,8 @@ def submit_meal():
     selected_meals = data['meals']
 
     now = datetime.now()
-    date = now.strftime("%Y-%m-%d")
+    date = request.json.get("date") or now.strftime("%Y-%m-%d")
+
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
     conn = sqlite3.connect(DB_NAME)
@@ -171,7 +172,7 @@ def submit_bazar():
     cost = int(request.json['cost'])
     details = request.json['details']
     now = datetime.now()
-    date = now.strftime("%Y-%m-%d")
+    date = request.json.get("date") or now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
 
     conn = sqlite3.connect(DB_NAME)
