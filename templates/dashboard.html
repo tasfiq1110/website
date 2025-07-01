@@ -1,47 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard - Welcome</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <script defer src="/static/script.js"></script>
+    <meta charset="UTF-8">
+    <title>Dashboard - Meal Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome, {{ username }}</h1>
-    <a href="/logout" class="logout-btn">Logout</a>
+    <div class="container">
+        <h1>Welcome, {{ session['username'] }}</h1>
 
-    <!-- Meal Submission Form -->
-    <section class="form-section">
-      <h2>Submit Today's Meal</h2>
-      <form id="mealForm">
-        <label><input type="checkbox" name="meal[]" value="Breakfast"> Breakfast</label>
-        <label><input type="checkbox" name="meal[]" value="Lunch"> Lunch</label>
-        <label><input type="checkbox" name="meal[]" value="Dinner"> Dinner</label>
-        <br><br>
-        <button type="submit">Submit Meal</button>
-        <p id="mealResult"></p>
-      </form>
-    </section>
+        <!-- Meal Submission Form -->
+        <h2>Submit Today's Meal</h2>
+        <form id="mealForm">
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="meal" value="Breakfast">Breakfast</label>
+                <label><input type="checkbox" name="meal" value="Lunch">Lunch</label>
+                <label><input type="checkbox" name="meal" value="Dinner">Dinner</label>
+            </div>
+            <button type="submit">Submit Meal</button>
+            <div id="mealResult" class="result"></div>
+        </form>
 
-    <!-- Bazar Submission -->
-    <section class="form-section">
-      <h2>Submit Today's Bazar</h2>
-      <form id="bazarForm">
-        <input type="number" name="cost" placeholder="Cost (e.g. 500)" required><br>
-        <textarea name="details" placeholder="Details (e.g. Rice, Egg, Oil)" required></textarea><br>
-        <button type="submit">Submit Bazar</button>
-        <p id="bazarResult"></p>
-      </form>
-    </section>
+        <!-- Bazar Cost Form -->
+        <h2>Submit Today's Bazar Cost</h2>
+        <form id="bazarForm">
+            <label for="cost">Amount (৳):</label>
+            <input type="number" id="cost" name="cost" required>
+            <label for="details">Details:</label>
+            <textarea id="details" name="details" required></textarea>
+            <button type="submit">Submit Bazar</button>
+            <div id="bazarResult" class="result"></div>
+        </form>
 
-    <!-- Summary Section -->
-    <section class="form-section">
-      <h2>View Summary</h2>
-      <button id="personalSummaryBtn">Personal Summary</button>
-      <button id="globalSummaryBtn">Global Summary</button>
-      <div id="summaryTable"></div>
-    </section>
-  </div>
+        <!-- Personal Summary -->
+        <h2>My Monthly Meal Summary</h2>
+        <button id="personalSummaryBtn">Show Personal Summary</button>
+        <div id="personalSummary"></div>
+
+        <!-- Global Summary -->
+        <h2>Global Monthly Meal Summary</h2>
+        <button id="globalSummaryBtn">Show Global Summary</button>
+        <div id="globalSummary"></div>
+
+        <!-- Logout -->
+        <a id="logout" href="/logout">Logout</a>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
