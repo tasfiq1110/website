@@ -8,14 +8,12 @@
 <body>
   <div class="container">
     <h2>Login</h2>
-    <form id="loginForm">
+    <form action="{{ url_for('login_user') }}" method="POST">
       <input type="text" name="username" placeholder="Username" required>
       <input type="password" name="password" placeholder="Password" required>
       <button type="submit">Login</button>
     </form>
-    <p id="loginResult" class="result-text"></p>
-    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+    <p>Don't have an account? <a href="{{ url_for('home') }}">Register here</a></p>
   </div>
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
