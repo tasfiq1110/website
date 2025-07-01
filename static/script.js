@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (calculateCostBtn) {
         calculateCostBtn.addEventListener("click", async function () {
-            const res = await fetch("/summary/costs");
+            const res = await fetch("/summary/cost");
             const result = document.getElementById("costResult");
             result.innerHTML = "";
 
