@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Supabase PostgreSQL config
-DATABASE_URL = "postgresql://postgres:1310532235@db.jbdqhbxectwowjwgwgco.supabase.co:5432/postgres"
+DATABASE_URL = "postgresql://postgres.jbdqhbxectwowjwgwgco:1310532235@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 def get_db():
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
