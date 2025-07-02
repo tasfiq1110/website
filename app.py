@@ -117,6 +117,27 @@ def login_page():
         session['username'] = username
         return redirect(url_for('dashboard'))
     return "Invalid Credentials"
+    @app.route('/bazar_entry')
+def get_bazar_entry():
+    if 'username' not in session:
+        return "Unauthorized", 401
+
+    username = session['username']
+    date = request.args.get('date')
+    if not date:
+        return jsonify({})
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT cost, details FROM bazar WHERE username = %s AND date = %s", (username, date))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        return jsonify(row)
+    return jsonify({})
+
 
 @app.route('/dashboard')
 def dashboard():
