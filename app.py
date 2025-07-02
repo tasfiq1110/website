@@ -332,6 +332,7 @@ def summary_cost():
     conn = get_db()
     cur = conn.cursor()
 
+    # Get total meals per user
     cur.execute("""
         SELECT username, COUNT(*) as meals
         FROM meals
@@ -340,21 +341,36 @@ def summary_cost():
     """, (f"{month}-%",))
     meal_counts = {row['username']: row['meals'] for row in cur.fetchall()}
 
+    # Get total bazar cost per user
     cur.execute("""
-        SELECT SUM(cost) as total_cost FROM bazar
+        SELECT username, SUM(cost) as spent
+        FROM bazar
         WHERE date LIKE %s
+        GROUP BY username
     """, (f"{month}-%",))
+    user_spending = {row['username']: row['spent'] for row in cur.fetchall()}
+
+    # Get total bazar cost overall
+    cur.execute("SELECT SUM(cost) as total_cost FROM bazar WHERE date LIKE %s", (f"{month}-%",))
     total_cost = cur.fetchone()['total_cost'] or 0
 
     total_meals = sum(meal_counts.values())
     unit_cost = total_cost / total_meals if total_meals > 0 else 0
 
+    # Calculate per user final balance
+    all_users = set(meal_counts) | set(user_spending)
     user_costs = []
-    for username, meal_count in meal_counts.items():
+
+    for username in all_users:
+        meals = meal_counts.get(username, 0)
+        spent = user_spending.get(username, 0)
+        cost = round(meals * unit_cost, 2)
+        balance = round(spent - cost, 2)  # Positive = refund, Negative = pay more
         user_costs.append({
             "username": username,
-            "meals": meal_count,
-            "cost": round(unit_cost * meal_count, 2)
+            "meals": meals,
+            "spent": spent,
+            "balance": balance
         })
 
     cur.close()
@@ -364,6 +380,7 @@ def summary_cost():
         "meal_unit_cost": round(unit_cost, 2),
         "user_costs": user_costs
     })
+
 
 
 @app.route('/notifications/mark_seen', methods=['POST'])
