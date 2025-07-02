@@ -191,11 +191,10 @@ def active_meals_today():
     conn = get_db()
     cursor = conn.cursor()
 
-    # ✅ Correct SQL syntax for PostgreSQL
     cursor.execute('''
-        SELECT username, COUNT(*) as meal_count 
+        SELECT username, COUNT(*) as meal_count, MAX(is_modified) as modified
         FROM meals 
-        WHERE date = %s 
+        WHERE date = %s AND meal_type != 'None'
         GROUP BY username
     ''', (today_str,))
 
@@ -203,9 +202,32 @@ def active_meals_today():
     cursor.close()
     conn.close()
 
-    # Return result as JSON
-    active_meals = [{"username": row["username"], "meal_count": row["meal_count"]} for row in rows]
-    return jsonify({"active_meals": active_meals})
+    # Always show modified users even with 0 real meals
+    users_with_none = {}
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT username, MAX(is_modified) as modified
+        FROM meals 
+        WHERE date = %s
+        GROUP BY username
+    ''', (today_str,))
+    for row in cursor.fetchall():
+        users_with_none[row['username']] = row['modified']
+    cursor.close()
+    conn.close()
+
+    active_meals = {row['username']: {"meal_count": row['meal_count'], "modified": row['modified']} for row in rows}
+
+    for username, modified in users_with_none.items():
+        if username not in active_meals:
+            active_meals[username] = {"meal_count": 0, "modified": modified}
+
+    return jsonify({"active_meals": [
+        {"username": u, "meal_count": data["meal_count"], "modified": bool(data["modified"])}
+        for u, data in active_meals.items()
+    ]})
+
 
 
 
