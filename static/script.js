@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.createElement("tbody");
         summary.forEach(row => {
             const tr = document.createElement("tr");
-            const values = isPersonal ? row.slice(1) : row;
+            const values = row;
             values.forEach(val => {
                 const td = document.createElement("td");
                 td.innerText = val;
