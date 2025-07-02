@@ -143,7 +143,7 @@ def submit_meal():
     for meal in selected_meals:
         cur.execute("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-            VALUES (%s, %s, %s, 0, %s)
+            VALUES (%s, %s, %s, 1, %s)
         """, (username, date, meal, timestamp))
 
     conn.commit()
