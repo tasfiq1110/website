@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     li.classList.add("unseen");
                     unseenCount++;
                 }
-                li.innerText = `[${n.date}] ${n.message}`;
+                li.innerText = `[${n.timestamp}] ${n.message}`;
                 list.appendChild(li);
             });
         }
