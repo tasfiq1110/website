@@ -136,24 +136,30 @@ def submit_meal():
     conn = get_db()
     cur = conn.cursor()
 
-    # 🔥 First, delete all existing meals for this user on that date
+    # Delete all meals for that user/date
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
-    # ✅ Then, insert only the selected ones (if any)
-    for meal in selected_meals:
+    if selected_meals:
+        # Insert new selected meals
+        for meal in selected_meals:
+            cur.execute("""
+                INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                VALUES (%s, %s, %s, 0, %s)
+            """, (username, date, meal, timestamp))
+        msg = "Meal submitted"
+    else:
+        # Submit a 'None' marker row to indicate zero meal submitted (modified)
         cur.execute("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-            VALUES (%s, %s, %s, 0, %s)
-        """, (username, date, meal, timestamp))
+            VALUES (%s, %s, %s, 1, %s)
+        """, (username, date, "None", timestamp))
+        msg = "Submitted 0 meals (cleared previous)"
 
     conn.commit()
     cur.close()
     conn.close()
+    return msg
 
-    if selected_meals:
-        return "Meal submitted"
-    else:
-        return "Submitted 0 meals (cleared previous)"
 
 
 
