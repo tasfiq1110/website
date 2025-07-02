@@ -77,6 +77,38 @@ body {
     font-size: 14px;
     color: #636e72;
 }
+/* Wrapper for full height centering */
+.page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+/* Make form container adjust better on smaller devices */
+@media (max-width: 480px) {
+    .form-container {
+        padding: 20px 16px;
+        margin: 20px auto;
+    }
+
+    .form-container h2 {
+        font-size: 24px;
+    }
+
+    .form-container input,
+    .form-container button {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    .form-switch {
+        font-size: 13px;
+    }
+}
+
 
 .form-switch a {
     color: #00b894;
