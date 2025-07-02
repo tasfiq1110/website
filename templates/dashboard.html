@@ -218,10 +218,12 @@
   <div class="container">
     <h1>
       Welcome, {{ session['username'] }}
-      <div id="notificationBell" class="notification-bell">
-        🔔
-        <span id="notifDot" class="dot" style="display: none;"></span>
-      </div>
+      <!-- ✅ Change this -->
+<div id="notificationToggle" class="notification-bell">
+  🔔
+  <span id="notifDot" class="dot" style="display: none;"></span>
+</div>
+
     </h1>
 
     <!-- 🔔 Notification Panel -->
