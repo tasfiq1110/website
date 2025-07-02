@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+import pytz
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -9,7 +10,9 @@ from apscheduler.triggers.cron import CronTrigger
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+
 DATABASE_URL = "postgresql://postgres.jbdqhbxectwowjwgwgco:1310532235@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
+TIMEZONE = pytz.timezone("Asia/Dhaka")  # ✅ use your actual timezone
 
 def get_db():
     return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
@@ -246,7 +249,7 @@ def active_meals_today():
     if 'username' not in session:
         return "Unauthorized", 401
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(TIMEZONE).strftime("%Y-%m-%d")
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
