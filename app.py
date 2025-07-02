@@ -54,20 +54,20 @@ init_db()
 def add_notification(message):
     with get_db() as conn:
         cur = conn.cursor()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
         cur.execute("INSERT INTO notifications (message, timestamp) VALUES (%s, %s)", (message, timestamp))
         conn.commit()
 
 def auto_add_meals():
     conn = get_db()
     cur = conn.cursor()
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday = (datetime.now(TIMEZONE) - timedelta(days=1)).strftime("%Y-%m-%d")
     cur.execute("SELECT username FROM users")
     users = [row['username'] for row in cur.fetchall()]
     for username in users:
         cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s", (username, yesterday))
         if cur.fetchone()['count'] == 0:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
             for meal in ["Lunch", "Dinner"]:
                 cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
                                VALUES (%s, %s, %s, 0, %s)""", (username, yesterday, meal, timestamp))
@@ -163,7 +163,7 @@ def submit_meal():
     extra_meal = int(data.get('extra_meal', 0) or 0)
     now = datetime.now()
     date = data.get("date") or now.strftime("%Y-%m-%d")
-    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
 
     conn = get_db()
     cur = conn.cursor()
