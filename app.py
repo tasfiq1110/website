@@ -1,5 +1,3 @@
-# Full Flask app.py with correct meal submission and summary logic for Supabase
-
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -11,7 +9,6 @@ from apscheduler.triggers.cron import CronTrigger
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Supabase PostgreSQL config
 DATABASE_URL = "postgresql://postgres.jbdqhbxectwowjwgwgco:1310532235@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 def get_db():
@@ -48,11 +45,9 @@ init_db()
 def auto_add_meals():
     conn = get_db()
     cur = conn.cursor()
-
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     cur.execute("SELECT username FROM users")
     users = [row['username'] for row in cur.fetchall()]
-
     for username in users:
         cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s", (username, yesterday))
         if cur.fetchone()['count'] == 0:
@@ -60,7 +55,6 @@ def auto_add_meals():
             for meal in ["Lunch", "Dinner"]:
                 cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
                                VALUES (%s, %s, %s, 0, %s)""", (username, yesterday, meal, timestamp))
-
     conn.commit()
     cur.close()
     conn.close()
@@ -135,24 +129,15 @@ def submit_meal():
 
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s", (username, date))
     previous_count = cur.fetchone()['count']
     is_modified = 1 if previous_count > 0 else 0
 
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
-    meal_entries = []
+    meal_entries = [(username, date, meal, is_modified, timestamp) for meal in selected_meals]
+    meal_entries += [(username, date, "Extra", is_modified, timestamp)] * extra_meal
 
-    # Add normal selected meals
-    for meal in selected_meals:
-        meal_entries.append((username, date, meal, is_modified, timestamp))
-
-    # Add extra meals
-    for _ in range(extra_meal):
-        meal_entries.append((username, date, "Extra", is_modified, timestamp))
-
-    # Insert or fallback to 'None'
     if meal_entries:
         cur.executemany("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
@@ -167,9 +152,7 @@ def submit_meal():
     conn.commit()
     cur.close()
     conn.close()
-
     return "Meal submitted (Modified)" if is_modified else "Meal submitted"
-
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
@@ -179,18 +162,27 @@ def submit_bazar():
     data = request.get_json()
     cost = int(data['cost'])
     details = data['details']
-    now = datetime.now()
-    date = data.get("date") or now.strftime("%Y-%m-%d")
-    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    date = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""INSERT INTO bazar (username, date, cost, details, timestamp)
-                   VALUES (%s, %s, %s, %s, %s)""", (username, date, cost, details, timestamp))
+
+    cur.execute("SELECT COUNT(*) FROM bazar WHERE username = %s AND date = %s", (username, date))
+    count = cur.fetchone()['count']
+    is_modified = count > 0
+
+    # Overwrite old entry
+    cur.execute("DELETE FROM bazar WHERE username = %s AND date = %s", (username, date))
+    cur.execute("""
+        INSERT INTO bazar (username, date, cost, details, timestamp)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (username, date, cost, details, timestamp))
+
     conn.commit()
     cur.close()
     conn.close()
-    return "Bazar submitted"
+    return "Bazar submitted (Modified)" if is_modified else "Bazar submitted"
 
 @app.route('/summary/personal')
 def personal_summary():
@@ -199,7 +191,6 @@ def personal_summary():
 
     username = session['username']
     month = request.args.get("month") or datetime.now().strftime("%Y-%m")
-
     conn = get_db()
     cur = conn.cursor()
 
@@ -324,4 +315,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
