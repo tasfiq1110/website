@@ -176,20 +176,27 @@
         <h1>Welcome, {{ session['username'] }}</h1>
 
         <!-- Meal Submission -->
-        <section>
-            <h2>Submit Meal</h2>
-            <form id="mealForm">
-                <label for="mealDate">Select Date:</label>
-                <input type="date" id="mealDate" name="mealDate">
-                <div class="checkbox-group">
-                    <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
-                    <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
-                    <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
-                </div>
-                <button type="submit">Submit Meal</button>
-                <div id="mealResult" class="result"></div>
-            </form>
-        </section>
+        <!-- Meal Submission -->
+<section>
+    <h2>Submit Meal</h2>
+    <form id="mealForm">
+        <label for="mealDate">Select Date:</label>
+        <input type="date" id="mealDate" name="mealDate">
+
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
+            <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
+            <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
+        </div>
+
+        <label for="extraMeal">Extra Meals (Guests or others):</label>
+        <input type="number" id="extraMeal" name="extraMeal" min="0" value="0" placeholder="0">
+
+        <button type="submit">Submit Meal</button>
+        <div id="mealResult" class="result"></div>
+    </form>
+</section>
+
 
         <!-- Bazar Cost -->
         <section>
