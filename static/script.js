@@ -20,9 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
 
             if (values.length === 0) {
-                showToast("Please select at least one meal.", "error");
-                return;
-            }
+    showToast("Submitting with 0 meals (no meal selected).", "success");
+    }
 
             const res = await fetch("/submit_meal", {
                 method: "POST",
