@@ -270,7 +270,7 @@ def personal_summary():
         m = meals.get(date, {"count": 0, "modified": 0})
         b = bazar.get(date, {"bazar_count": 0, "total_cost": "", "details": ""})
         summary.append([
-            username, date,
+            date,
             m["count"],
             "Yes" if m["modified"] else "No",
             b["total_cost"],
