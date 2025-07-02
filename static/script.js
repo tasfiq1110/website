@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const text = await res.text();
             document.getElementById("mealResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
+            fetchActiveMealsToday(); // update today's list after meal submission
         });
     }
 
@@ -188,4 +189,32 @@ document.addEventListener("DOMContentLoaded", function () {
             toast.className = "toast";
         }, 3000);
     }
+
+    // 🔥 NEW FUNCTION: Fetch and show active meals today
+    async function fetchActiveMealsToday() {
+        try {
+            const res = await fetch("/active_meals_today");
+            const data = await res.json();
+            const list = document.getElementById("activeMealsList");
+            list.innerHTML = "";
+
+            if (data.active_meals.length === 0) {
+                const li = document.createElement("li");
+                li.innerText = "No meals submitted today.";
+                li.style.color = "#888";
+                list.appendChild(li);
+            } else {
+                data.active_meals.forEach(([username, meal_count]) => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>`;
+                    list.appendChild(li);
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching active meals:", error);
+        }
+    }
+
+    // Call it on page load
+    fetchActiveMealsToday();
 });
