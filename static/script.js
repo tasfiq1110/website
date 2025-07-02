@@ -212,30 +212,46 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function fetchNotifications() {
-        try {
-            const res = await fetch("/notifications");
-            const data = await res.json();
-            const panel = document.getElementById("notificationPanel");
-            panel.innerHTML = "";
+    try {
+        const res = await fetch("/notifications");
+        const data = await res.json();
+        const list = document.getElementById("notificationList");
 
-            let unseenCount = 0;
+        list.innerHTML = "";
+
+        let unseenCount = 0;
+
+        if (data.notifications.length === 0) {
+            const li = document.createElement("li");
+            li.innerText = "No notifications yet.";
+            list.appendChild(li);
+        } else {
             data.notifications.forEach(n => {
-                const div = document.createElement("div");
-                div.className = "notification";
+                const li = document.createElement("li");
+                li.className = "notification-item";
                 if (!n.seen) {
-                    div.classList.add("unseen");
+                    li.classList.add("unseen");
                     unseenCount++;
                 }
-                div.innerText = `[${n.date}] ${n.message}`;
-                panel.appendChild(div);
+                li.innerText = `[${n.date}] ${n.message}`;
+                list.appendChild(li);
             });
-
-            unseenBadge.style.display = unseenCount > 0 ? "inline-block" : "none";
-            unseenBadge.innerText = unseenCount;
-        } catch (e) {
-            console.error("Notifications fetch failed:", e);
         }
+
+        const notifDot = document.getElementById("notifDot");
+        if (unseenCount > 0) {
+            notifDot.style.display = "inline-block";
+        } else {
+            notifDot.style.display = "none";
+        }
+
+    } catch (err) {
+        console.error("Failed to fetch notifications", err);
+        const list = document.getElementById("notificationList");
+        list.innerHTML = "<li>Error loading notifications.</li>";
     }
+}
+
 
     if (notificationToggle) {
         notificationToggle.addEventListener("click", async () => {
