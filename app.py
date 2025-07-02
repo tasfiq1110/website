@@ -135,6 +135,19 @@ def submit_meal():
 
     conn = get_db()
     cur = conn.cursor()
+
+    if not selected_meals:
+        # Zero meals submitted – mark the day with a dummy "None" type if not already submitted
+        cur.execute("SELECT * FROM meals WHERE username=%s AND date=%s", (username, date))
+        already = cur.fetchone()
+        if not already:
+            cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                           VALUES (%s, %s, %s, 0, %s)""", (username, date, "None", timestamp))
+            conn.commit()
+        cur.close()
+        conn.close()
+        return "Zero meals submitted"
+
     modified_flag = 0
 
     for meal in selected_meals:
@@ -152,6 +165,7 @@ def submit_meal():
     conn.close()
 
     return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
+
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
