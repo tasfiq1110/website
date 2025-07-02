@@ -194,30 +194,51 @@ document.addEventListener("DOMContentLoaded", function () {
   async function fetchActiveMealsToday() {
     try {
         const res = await fetch("/active_meals_today");
-        const data = await res.json(); // { active_meals: [...] }
+        const data = await res.json(); // Should be { active_meals: [ { username, meal_count, modified }, ... ] }
+
         const list = document.getElementById("activeMealsList");
         list.innerHTML = "";
 
-        if (data.active_meals.length === 0) {
+        if (!data.active_meals || data.active_meals.length === 0) {
             const li = document.createElement("li");
+            li.className = "no-data";
             li.innerText = "No meals submitted today.";
-            li.style.color = "#888";
             list.appendChild(li);
-        } else {
-            data.active_meals.forEach(({ username, meal_count, modified }) => {
-        const li = document.createElement("li");
-        const modText = modified ? `<span style="color: orange;"> (Modified)</span>` : "";
-        li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>${modText}`;
-        list.appendChild(li);
-    });
-
+            return;
         }
+
+        data.active_meals.forEach(({ username, meal_count, modified }) => {
+            const li = document.createElement("li");
+
+            // Username
+            const name = document.createElement("span");
+            name.className = "username";
+            name.innerText = username;
+
+            // Meal Info
+            const mealInfo = document.createElement("span");
+            mealInfo.className = "meal-info";
+            if (meal_count === 0) mealInfo.classList.add("zero");
+            mealInfo.innerText = `${meal_count} meal${meal_count !== 1 ? 's' : ''}`;
+
+            // Show modified tag if needed
+            if (modified) {
+                const modifiedTag = document.createElement("span");
+                modifiedTag.className = "modified";
+                modifiedTag.innerText = " (Modified)";
+                mealInfo.appendChild(modifiedTag);
+            }
+
+            li.appendChild(name);
+            li.appendChild(mealInfo);
+            list.appendChild(li);
+        });
     } catch (error) {
         console.error("Error fetching active meals:", error);
+        const list = document.getElementById("activeMealsList");
+        list.innerHTML = "<li class='no-data'>Failed to load active meals.</li>";
     }
 }
-
-
 
 
     // Call it on page load
