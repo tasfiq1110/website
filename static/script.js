@@ -110,22 +110,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const table = document.createElement("table");
                 const headerRow = document.createElement("tr");
-                ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
-                    const th = document.createElement("th");
-                    th.innerText = h;
-                    headerRow.appendChild(th);
-                });
+                ["Username", "Total Meals", "Bazar Spent (৳)", "Total Cost (৳)", "Balance (৳)"].forEach(h => {
+            const th = document.createElement("th");
+            th.innerText = h;
+            headerRow.appendChild(th);
+            });
                 table.appendChild(headerRow);
 
                 data.user_costs.forEach(row => {
-                    const tr = document.createElement("tr");
-                    [row.username, row.meals, data.meal_unit_cost, row.cost].forEach(val => {
-                        const td = document.createElement("td");
-                        td.innerText = typeof val === "number" ? val.toFixed(2) : val;
-                        tr.appendChild(td);
-                    });
-                    table.appendChild(tr);
-                });
+        const tr = document.createElement("tr");
+        const cells = [
+        row.username,
+        row.meals,
+        row.spent || 0,
+        row.meals * data.meal_unit_cost,
+        row.balance
+        ];
+
+    cells.forEach(val => {
+        const td = document.createElement("td");
+        td.innerText = typeof val === "number" ? val.toFixed(2) : val;
+        tr.appendChild(td);
+    });
+
+    table.appendChild(tr);
+});
 
                 const wrapper = document.createElement("div");
                 wrapper.className = "table-wrapper";
