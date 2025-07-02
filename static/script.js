@@ -270,4 +270,5 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchActiveMealsToday();
     fetchNotifications();
     setInterval(fetchActiveMealsToday, 5000);
+    setInterval(fetchNotifications, 2000);
 });
