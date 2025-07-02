@@ -38,9 +38,22 @@ def init_db():
                         details TEXT NOT NULL,
                         timestamp TEXT NOT NULL
                     )''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS notifications (
+                        id SERIAL PRIMARY KEY,
+                        message TEXT NOT NULL,
+                        timestamp TEXT NOT NULL,
+                        seen_by TEXT[] DEFAULT '{}'
+                    )''')
         conn.commit()
 
 init_db()
+
+def add_notification(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO notifications (message, timestamp) VALUES (%s, %s)", (message, timestamp))
+        conn.commit()
 
 def auto_add_meals():
     conn = get_db()
@@ -129,9 +142,18 @@ def submit_meal():
 
     conn = get_db()
     cur = conn.cursor()
+
     cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s", (username, date))
     previous_count = cur.fetchone()['count']
     is_modified = 1 if previous_count > 0 else 0
+
+    if is_modified:
+        cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s AND meal_type != 'None'", (username, date))
+        old_count = cur.fetchone()['count']
+        new_count = len(selected_meals) + extra_meal
+        if old_count != new_count:
+            message = f"{username} modified meal on {date}: {old_count} → {new_count}"
+            add_notification(message)
 
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
@@ -139,15 +161,11 @@ def submit_meal():
     meal_entries += [(username, date, "Extra", is_modified, timestamp)] * extra_meal
 
     if meal_entries:
-        cur.executemany("""
-            INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-            VALUES (%s, %s, %s, %s, %s)
-        """, meal_entries)
+        cur.executemany("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                           VALUES (%s, %s, %s, %s, %s)""", meal_entries)
     else:
-        cur.execute("""
-            INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-            VALUES (%s, %s, 'None', %s, %s)
-        """, (username, date, is_modified, timestamp))
+        cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                       VALUES (%s, %s, 'None', %s, %s)""", (username, date, is_modified, timestamp))
 
     conn.commit()
     cur.close()
@@ -172,188 +190,49 @@ def submit_bazar():
     count = cur.fetchone()['count']
     is_modified = count > 0
 
-    # Overwrite old entry
+    if is_modified:
+        cur.execute("SELECT cost FROM bazar WHERE username = %s AND date = %s", (username, date))
+        old_cost = cur.fetchone()['cost']
+        if old_cost != cost:
+            message = f"{username} modified bazar on {date}: ৳{old_cost} → ৳{cost}"
+            add_notification(message)
+
     cur.execute("DELETE FROM bazar WHERE username = %s AND date = %s", (username, date))
-    cur.execute("""
-        INSERT INTO bazar (username, date, cost, details, timestamp)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (username, date, cost, details, timestamp))
+    cur.execute("""INSERT INTO bazar (username, date, cost, details, timestamp)
+                   VALUES (%s, %s, %s, %s, %s)""", (username, date, cost, details, timestamp))
 
     conn.commit()
     cur.close()
     conn.close()
     return "Bazar submitted (Modified)" if is_modified else "Bazar submitted"
 
-@app.route('/active_meals_today')
-def active_meals_today():
-    today_str = datetime.now().strftime('%Y-%m-%d')
-
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT username, COUNT(*) as meal_count, MAX(is_modified) as modified
-        FROM meals 
-        WHERE date = %s AND meal_type != 'None'
-        GROUP BY username
-    ''', (today_str,))
-
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    # Always show modified users even with 0 real meals
-    users_with_none = {}
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT username, MAX(is_modified) as modified
-        FROM meals 
-        WHERE date = %s
-        GROUP BY username
-    ''', (today_str,))
-    for row in cursor.fetchall():
-        users_with_none[row['username']] = row['modified']
-    cursor.close()
-    conn.close()
-
-    active_meals = {row['username']: {"meal_count": row['meal_count'], "modified": row['modified']} for row in rows}
-
-    for username, modified in users_with_none.items():
-        if username not in active_meals:
-            active_meals[username] = {"meal_count": 0, "modified": modified}
-
-    return jsonify({"active_meals": [
-        {"username": u, "meal_count": data["meal_count"], "modified": bool(data["modified"])}
-        for u, data in active_meals.items()
-    ]})
-
-
-
-
-@app.route('/summary/personal')
-def personal_summary():
+@app.route('/notifications')
+def get_notifications():
     if 'username' not in session:
         return "Unauthorized", 401
-
     username = session['username']
-    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
     conn = get_db()
     cur = conn.cursor()
-
-    cur.execute("""
-        SELECT date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
-        FROM meals
-        WHERE username = %s AND date LIKE %s
-        GROUP BY date
-    """, (username, f"{month}-%"))
-    meals = {row['date']: {"count": row['count'], "modified": row['modified']} for row in cur.fetchall()}
-
-    cur.execute("""
-        SELECT date, COUNT(*) AS bazar_count, SUM(cost) AS total_cost, STRING_AGG(details, '; ') AS details
-        FROM bazar
-        WHERE username = %s AND date LIKE %s
-        GROUP BY date
-    """, (username, f"{month}-%"))
-    bazar = {row['date']: row for row in cur.fetchall()}
-
-    all_dates = sorted(set(meals.keys()) | set(bazar.keys()))
-    summary = []
-    for date in all_dates:
-        m = meals.get(date, {"count": 0, "modified": 0})
-        b = bazar.get(date, {"bazar_count": 0, "total_cost": "", "details": ""})
-        summary.append([
-            username, date,
-            m["count"],
-            "Yes" if m["modified"] else "No",
-            b["total_cost"],
-            b["details"],
-            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
-        ])
-
+    cur.execute("SELECT * FROM notifications ORDER BY id DESC")
+    rows = cur.fetchall()
+    for r in rows:
+        r["unseen"] = username not in r["seen_by"]
     cur.close()
     conn.close()
-    return jsonify({"summary": summary})
+    return jsonify(rows)
 
-@app.route('/summary/global')
-def global_summary():
-    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT username, date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
-        FROM meals
-        WHERE date LIKE %s
-        GROUP BY username, date
-    """, (f"{month}-%",))
-    meals = {(row['username'], row['date']): {"count": row['count'], "modified": row['modified']} for row in cur.fetchall()}
-
-    cur.execute("""
-        SELECT username, date, COUNT(*) AS bazar_count, SUM(cost) AS total_cost, STRING_AGG(details, '; ') AS details
-        FROM bazar
-        WHERE date LIKE %s
-        GROUP BY username, date
-    """, (f"{month}-%",))
-    bazar = {(row['username'], row['date']): row for row in cur.fetchall()}
-
-    all_keys = sorted(set(meals.keys()) | set(bazar.keys()))
-    summary = []
-    for key in all_keys:
-        username, date = key
-        m = meals.get(key, {"count": 0, "modified": 0})
-        b = bazar.get(key, {"bazar_count": 0, "total_cost": "", "details": ""})
-        summary.append([
-            username, date,
-            m["count"],
-            "Yes" if m["modified"] else "No",
-            b["total_cost"],
-            b["details"],
-            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
-        ])
-
-    cur.close()
-    conn.close()
-    return jsonify({"summary": summary})
-
-@app.route('/summary/cost')
-def cost_summary():
+@app.route('/notifications/mark_seen', methods=['POST'])
+def mark_notifications_seen():
     if 'username' not in session:
         return "Unauthorized", 401
-
-    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
+    username = session['username']
     conn = get_db()
     cur = conn.cursor()
-
-    cur.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE %s", (f"{month}-%",))
-    total_bazar_cost = cur.fetchone()['sum'] or 0
-
-    cur.execute("SELECT COUNT(*) FROM meals WHERE date LIKE %s AND meal_type != 'None'", (f"{month}-%",))
-    total_meal_count = cur.fetchone()['count'] or 0
-
-    meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
-
-    cur.execute("SELECT username, COUNT(*) FROM meals WHERE date LIKE %s AND meal_type != 'None' GROUP BY username", (f"{month}-%",))
-    user_data = cur.fetchall()
-
-    results = []
-    for row in user_data:
-        user_total_cost = round(row['count'] * meal_unit_cost, 2)
-        results.append({
-            "username": row['username'],
-            "meals": row['count'],
-            "cost": user_total_cost
-        })
-
+    cur.execute("UPDATE notifications SET seen_by = array_append(seen_by, %s) WHERE NOT (%s = ANY(seen_by))", (username, username))
+    conn.commit()
     cur.close()
     conn.close()
-    return jsonify({
-        "month": month,
-        "total_bazar_cost": total_bazar_cost,
-        "total_meal_count": total_meal_count,
-        "meal_unit_cost": round(meal_unit_cost, 2),
-        "user_costs": results
-    })
+    return "Seen"
 
 @app.route('/logout')
 def logout():
