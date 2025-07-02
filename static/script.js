@@ -9,20 +9,19 @@ document.addEventListener("DOMContentLoaded", function () {
     const monthPicker = document.getElementById("monthPicker");
     const notificationPanel = document.getElementById("notificationPanel");
     const unseenBadge = document.getElementById("unseenBadge");
+    const notificationToggle = document.getElementById("notificationToggle");
 
     function getSelectedMonth() {
-        return monthPicker && monthPicker.value ? monthPicker.value : new Date().toISOString().slice(0, 7);
+        return monthPicker?.value || new Date().toISOString().slice(0, 7);
     }
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-
             const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
             const values = Array.from(checkboxes).map(cb => cb.value);
             const date = mealDateInput?.value || null;
-            const extraMealInput = document.getElementById("extraMeal");
-            const extraMeal = extraMealInput ? parseInt(extraMealInput.value) || 0 : 0;
+            const extraMeal = parseInt(document.getElementById("extraMeal")?.value) || 0;
 
             if (values.length === 0 && extraMeal === 0) {
                 showToast("Submitting with 0 meals.", "success");
@@ -38,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("mealResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
             fetchActiveMealsToday();
-            fetchNotifications(); // refresh notifications
+            fetchNotifications();
         });
     }
 
@@ -58,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const text = await res.text();
             document.getElementById("bazarResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
-            fetchNotifications(); // refresh notifications
+            fetchNotifications();
         });
     }
 
@@ -71,8 +70,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (res.ok) {
                 const data = await res.json();
-                const table = generateSummaryTable(data.summary, true);
-                result.appendChild(table);
+                result.appendChild(generateSummaryTable(data.summary, true));
             } else {
                 result.innerText = "Failed to load summary.";
                 showToast("Failed to load personal summary", "error");
@@ -89,8 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (res.ok) {
                 const data = await res.json();
-                const table = generateSummaryTable(data.summary, false);
-                result.appendChild(table);
+                result.appendChild(generateSummaryTable(data.summary, false));
             } else {
                 result.innerText = "Failed to load summary.";
                 showToast("Failed to load global summary", "error");
@@ -113,19 +110,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const table = document.createElement("table");
                 const headerRow = document.createElement("tr");
-
                 ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
                     const th = document.createElement("th");
                     th.innerText = h;
                     headerRow.appendChild(th);
                 });
-
                 table.appendChild(headerRow);
 
                 data.user_costs.forEach(row => {
                     const tr = document.createElement("tr");
-                    const values = [row.username, row.meals, data.meal_unit_cost, row.cost];
-                    values.forEach(val => {
+                    [row.username, row.meals, data.meal_unit_cost, row.cost].forEach(val => {
                         const td = document.createElement("td");
                         td.innerText = typeof val === "number" ? val.toFixed(2) : val;
                         tr.appendChild(td);
@@ -158,15 +152,13 @@ document.addEventListener("DOMContentLoaded", function () {
             th.innerText = h;
             headerRow.appendChild(th);
         });
-
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
         const tbody = document.createElement("tbody");
         summary.forEach(row => {
             const tr = document.createElement("tr");
-            const values = row;
-            values.forEach(val => {
+            row.forEach(val => {
                 const td = document.createElement("td");
                 td.innerText = val;
                 tr.appendChild(td);
@@ -175,6 +167,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         table.appendChild(tbody);
+
         const wrapper = document.createElement("div");
         wrapper.className = "table-wrapper";
         wrapper.appendChild(table);
@@ -184,24 +177,19 @@ document.addEventListener("DOMContentLoaded", function () {
     function showToast(message, type = "success") {
         const toast = document.getElementById("toast");
         if (!toast) return;
-
         toast.className = `toast show ${type}`;
         toast.innerText = message;
-
-        setTimeout(() => {
-            toast.className = "toast";
-        }, 3000);
+        setTimeout(() => toast.className = "toast", 3000);
     }
 
     async function fetchActiveMealsToday() {
         try {
             const res = await fetch("/active_meals_today");
             const data = await res.json();
-
             const list = document.getElementById("activeMealsList");
             list.innerHTML = "";
 
-            if (!data.active_meals || data.active_meals.length === 0) {
+            if (!data.active_meals?.length) {
                 const li = document.createElement("li");
                 li.className = "no-data";
                 li.innerText = "No meals submitted today.";
@@ -211,31 +199,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
             data.active_meals.forEach(({ username, meal_count, modified }) => {
                 const li = document.createElement("li");
-
-                const name = document.createElement("span");
-                name.className = "username";
-                name.innerText = username;
-
-                const mealInfo = document.createElement("span");
-                mealInfo.className = "meal-info";
-                if (meal_count === 0) mealInfo.classList.add("zero");
-                mealInfo.innerText = `${meal_count} meal${meal_count !== 1 ? 's' : ''}`;
-
-                if (modified) {
-                    const modifiedTag = document.createElement("span");
-                    modifiedTag.className = "modified";
-                    modifiedTag.innerText = " (Modified)";
-                    mealInfo.appendChild(modifiedTag);
-                }
-
-                li.appendChild(name);
-                li.appendChild(mealInfo);
+                li.innerHTML = `<span class="username">${username}</span>
+                                <span class="meal-info ${meal_count === 0 ? 'zero' : ''}">
+                                    ${meal_count} meal${meal_count !== 1 ? 's' : ''}
+                                    ${modified ? '<span class="modified"> (Modified)</span>' : ''}
+                                </span>`;
                 list.appendChild(li);
             });
-        } catch (error) {
-            console.error("Error fetching active meals:", error);
-            const list = document.getElementById("activeMealsList");
-            list.innerHTML = "<li class='no-data'>Failed to load active meals.</li>";
+        } catch (e) {
+            console.error("Active meals fetch failed:", e);
         }
     }
 
@@ -244,11 +216,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const res = await fetch("/notifications");
             const data = await res.json();
             const panel = document.getElementById("notificationPanel");
-
             panel.innerHTML = "";
 
             let unseenCount = 0;
-
             data.notifications.forEach(n => {
                 const div = document.createElement("div");
                 div.className = "notification";
@@ -262,20 +232,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
             unseenBadge.style.display = unseenCount > 0 ? "inline-block" : "none";
             unseenBadge.innerText = unseenCount;
-
-        } catch (err) {
-            console.error("Failed to fetch notifications", err);
+        } catch (e) {
+            console.error("Notifications fetch failed:", e);
         }
     }
 
-    const notificationToggle = document.getElementById("notificationToggle");
     if (notificationToggle) {
-        notificationToggle.addEventListener("click", async function () {
-            const panel = document.getElementById("notificationPanel");
-            panel.style.display = panel.style.display === "block" ? "none" : "block";
+        notificationToggle.addEventListener("click", async () => {
+            const isShown = notificationPanel.style.display === "block";
+            notificationPanel.style.display = isShown ? "none" : "block";
 
-            // Mark all as seen if panel is shown
-            if (panel.style.display === "block") {
+            if (!isShown) {
                 unseenBadge.style.display = "none";
                 await fetch("/notifications/mark_seen", { method: "POST" });
             }
