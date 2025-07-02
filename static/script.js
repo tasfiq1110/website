@@ -243,4 +243,5 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Call it on page load
     fetchActiveMealsToday();
+    setInterval(fetchActiveMealsToday, 5000);
 });
