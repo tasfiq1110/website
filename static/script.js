@@ -204,11 +204,13 @@ document.addEventListener("DOMContentLoaded", function () {
             li.style.color = "#888";
             list.appendChild(li);
         } else {
-            data.active_meals.forEach(({ username, meal_count }) => {
-                const li = document.createElement("li");
-                li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>`;
-                list.appendChild(li);
-            });
+            data.active_meals.forEach(({ username, meal_count, modified }) => {
+        const li = document.createElement("li");
+        const modText = modified ? `<span style="color: orange;"> (Modified)</span>` : "";
+        li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>${modText}`;
+        list.appendChild(li);
+    });
+
         }
     } catch (error) {
         console.error("Error fetching active meals:", error);
