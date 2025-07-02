@@ -192,28 +192,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // 🔥 NEW FUNCTION: Fetch and show active meals today
     async function fetchActiveMealsToday() {
-        try {
-            const res = await fetch("/active_meals_today");
-            const data = await res.json();
-            const list = document.getElementById("activeMealsList");
-            list.innerHTML = "";
+    try {
+        const res = await fetch("/active_meals_today");
+        const data = await res.json(); // returns a list of { username, meal_count }
+        const list = document.getElementById("activeMealsList");
+        list.innerHTML = "";
 
-            if (data.active_meals.length === 0) {
+        if (data.length === 0) {
+            const li = document.createElement("li");
+            li.innerText = "No meals submitted today.";
+            li.style.color = "#888";
+            list.appendChild(li);
+        } else {
+            data.forEach(({ username, meal_count }) => {
                 const li = document.createElement("li");
-                li.innerText = "No meals submitted today.";
-                li.style.color = "#888";
+                li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>`;
                 list.appendChild(li);
-            } else {
-                data.active_meals.forEach(([username, meal_count]) => {
-                    const li = document.createElement("li");
-                    li.innerHTML = `<strong>${username}</strong> — <span style="color: green;">${meal_count} meals</span>`;
-                    list.appendChild(li);
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching active meals:", error);
+            });
         }
+    } catch (error) {
+        console.error("Error fetching active meals:", error);
     }
+}
+
 
     // Call it on page load
     fetchActiveMealsToday();
