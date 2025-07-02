@@ -186,27 +186,27 @@ def submit_bazar():
 
 @app.route('/active_meals_today')
 def active_meals_today():
-    # Get today's date in YYYY-MM-DD format
     today_str = datetime.now().strftime('%Y-%m-%d')
 
-    # Connect to the database
     conn = get_db()
     cursor = conn.cursor()
 
-    # Query: Count meals per user for today
+    # ✅ Correct SQL syntax for PostgreSQL
     cursor.execute('''
         SELECT username, COUNT(*) as meal_count 
         FROM meals 
-        WHERE date = ? 
+        WHERE date = %s 
         GROUP BY username
     ''', (today_str,))
 
     rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-    # Format response as a list of dictionaries
-    active_meals = [{"username": row[0], "meal_count": row[1]} for row in rows]
-
+    # Return result as JSON
+    active_meals = [{"username": row["username"], "meal_count": row["meal_count"]} for row in rows]
     return jsonify({"active_meals": active_meals})
+
 
 
 @app.route('/summary/personal')
