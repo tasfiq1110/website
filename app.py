@@ -406,41 +406,6 @@ def summary_cost():
         "user_costs": user_costs
     })
 
-@app.route('/calendar/meals')
-def calendar_meals():
-    if 'username' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    username = session['username']
-    month = request.args.get("month")
-    if not month:
-        return jsonify({"error": "Month required"}), 400
-
-    try:
-        start_date = datetime.strptime(month + "-01", "%Y-%m-%d")
-        next_month = (start_date.replace(day=28) + timedelta(days=4)).replace(day=1)
-    except ValueError:
-        return jsonify({"error": "Invalid date format"}), 400
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT date, MAX(is_modified) > 0 AS modified
-        FROM meals
-        WHERE username = %s AND date >= %s AND date < %s AND meal_type != 'None'
-        GROUP BY date
-    """, (username, start_date.date(), next_month.date()))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    result = {}
-    for row in rows:
-        date_str = row['date']
-        status = "modified" if row['modified'] else "submitted"
-        result[date_str] = status
-
-    return jsonify({"dates": result})
 
 
 
