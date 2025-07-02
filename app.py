@@ -216,7 +216,8 @@ def get_notifications():
         n['seen'] = username in (n['seen_by'] or [])
     cur.close()
     conn.close()
-    return jsonify(notifications)
+    return jsonify({ "notifications": notifications })  # ✅ Fix is here
+
 
 @app.route('/active_meals_today')
 def active_meals_today():
