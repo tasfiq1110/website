@@ -279,6 +279,53 @@ document.addEventListener("DOMContentLoaded", function () {
         list.innerHTML = "<li>Error loading notifications.</li>";
     }
 }
+    function loadMealCalendar(month) {
+  fetch(`/calendar/meals?month=${month}`)
+    .then(res => res.json())
+    .then(data => renderCalendar(data.dates, month));
+}
+
+function renderCalendar(mealData, monthStr) {
+  const calendar = document.getElementById("mealCalendar");
+  calendar.innerHTML = "";
+
+  const [year, month] = monthStr.split("-");
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  let html = "<table class='calendar'><tr>";
+  html += "<th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>";
+
+  const firstDay = new Date(`${monthStr}-01`).getDay();
+  for (let i = 0; i < firstDay; i++) html += "<td></td>";
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${monthStr}-${day.toString().padStart(2, '0')}`;
+    const status = mealData[date] || "none";
+
+    let bgColor =
+      status === "none" ? "#fce4ec" :
+      status === "modified" ? "#fff3cd" :
+      "#d4edda";
+
+    html += `<td style="background-color:${bgColor};">${day}</td>`;
+    if ((firstDay + day) % 7 === 0) html += "</tr><tr>";
+  }
+
+  html += "</tr></table>";
+  calendar.innerHTML = html;
+}
+
+document.getElementById("calendarMonth").addEventListener("change", e => {
+  loadMealCalendar(e.target.value);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const now = new Date();
+  const defaultMonth = now.toISOString().slice(0, 7);
+  document.getElementById("calendarMonth").value = defaultMonth;
+  loadMealCalendar(defaultMonth);
+});
+
 
 
     if (notificationToggle) {
