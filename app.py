@@ -136,29 +136,32 @@ def submit_meal():
     conn = get_db()
     cur = conn.cursor()
 
-    # Delete all meals for that user/date
+    # Check if user has already submitted meals for that day
+    cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s", (username, date))
+    previous_count = cur.fetchone()['count']
+    is_modified = 1 if previous_count > 0 else 0
+
+    # Delete previous meals
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
     if selected_meals:
-        # Insert new selected meals
         for meal in selected_meals:
             cur.execute("""
                 INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                VALUES (%s, %s, %s, 0, %s)
-            """, (username, date, meal, timestamp))
-        msg = "Meal submitted"
+                VALUES (%s, %s, %s, %s, %s)
+            """, (username, date, meal, is_modified, timestamp))
     else:
-        # Submit a 'None' marker row to indicate zero meal submitted (modified)
+        # No meals submitted, insert dummy row
         cur.execute("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-            VALUES (%s, %s, %s, 1, %s)
-        """, (username, date, "None", timestamp))
-        msg = "Submitted 0 meals (cleared previous)"
+            VALUES (%s, %s, 'None', %s, %s)
+        """, (username, date, is_modified, timestamp))
 
     conn.commit()
     cur.close()
     conn.close()
-    return msg
+
+    return "Meal submitted (Modified)" if is_modified else "Meal submitted"
 
 
 
