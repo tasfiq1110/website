@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const mealDateInput = document.getElementById("mealDate");
     const bazarDateInput = document.getElementById("bazarDate");
     const monthPicker = document.getElementById("monthPicker");
+    const notificationPanel = document.getElementById("notificationPanel");
+    const notificationBadge = document.getElementById("notificationBadge");
+    const notificationList = document.getElementById("notificationList");
 
     function getSelectedMonth() {
         return monthPicker && monthPicker.value ? monthPicker.value : new Date().toISOString().slice(0, 7);
@@ -15,17 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
             e.preventDefault();
-
             const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
             const values = Array.from(checkboxes).map(cb => cb.value);
             const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
-
             const extraMealInput = document.getElementById("extraMeal");
             const extraMeal = extraMealInput ? parseInt(extraMealInput.value) || 0 : 0;
-
-            if (values.length === 0 && extraMeal === 0) {
-                showToast("Submitting with 0 meals.", "success");
-            }
 
             const res = await fetch("/submit_meal", {
                 method: "POST",
@@ -36,7 +33,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const text = await res.text();
             document.getElementById("mealResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
-            fetchActiveMealsToday(); // update today's list after meal submission
+            fetchActiveMealsToday();
+            fetchNotifications();
         });
     }
 
@@ -56,6 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const text = await res.text();
             document.getElementById("bazarResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
+            fetchNotifications();
         });
     }
 
@@ -110,7 +109,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const table = document.createElement("table");
                 const headerRow = document.createElement("tr");
-
                 ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
                     const th = document.createElement("th");
                     th.innerText = h;
@@ -118,7 +116,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 table.appendChild(headerRow);
-
                 data.user_costs.forEach(row => {
                     const tr = document.createElement("tr");
                     const values = [row.username, row.meals, data.meal_unit_cost, row.cost];
@@ -190,58 +187,87 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 3000);
     }
 
-    // 🔥 NEW FUNCTION: Fetch and show active meals today
-  async function fetchActiveMealsToday() {
-    try {
-        const res = await fetch("/active_meals_today");
-        const data = await res.json(); // Should be { active_meals: [ { username, meal_count, modified }, ... ] }
+    async function fetchActiveMealsToday() {
+        try {
+            const res = await fetch("/active_meals_today");
+            const data = await res.json();
+            const list = document.getElementById("activeMealsList");
+            list.innerHTML = "";
 
-        const list = document.getElementById("activeMealsList");
-        list.innerHTML = "";
-
-        if (!data.active_meals || data.active_meals.length === 0) {
-            const li = document.createElement("li");
-            li.className = "no-data";
-            li.innerText = "No meals submitted today.";
-            list.appendChild(li);
-            return;
-        }
-
-        data.active_meals.forEach(({ username, meal_count, modified }) => {
-            const li = document.createElement("li");
-
-            // Username
-            const name = document.createElement("span");
-            name.className = "username";
-            name.innerText = username;
-
-            // Meal Info
-            const mealInfo = document.createElement("span");
-            mealInfo.className = "meal-info";
-            if (meal_count === 0) mealInfo.classList.add("zero");
-            mealInfo.innerText = `${meal_count} meal${meal_count !== 1 ? 's' : ''}`;
-
-            // Show modified tag if needed
-            if (modified) {
-                const modifiedTag = document.createElement("span");
-                modifiedTag.className = "modified";
-                modifiedTag.innerText = " (Modified)";
-                mealInfo.appendChild(modifiedTag);
+            if (!data.active_meals || data.active_meals.length === 0) {
+                const li = document.createElement("li");
+                li.className = "no-data";
+                li.innerText = "No meals submitted today.";
+                list.appendChild(li);
+                return;
             }
 
-            li.appendChild(name);
-            li.appendChild(mealInfo);
-            list.appendChild(li);
-        });
-    } catch (error) {
-        console.error("Error fetching active meals:", error);
-        const list = document.getElementById("activeMealsList");
-        list.innerHTML = "<li class='no-data'>Failed to load active meals.</li>";
+            data.active_meals.forEach(({ username, meal_count, modified }) => {
+                const li = document.createElement("li");
+                const name = document.createElement("span");
+                name.className = "username";
+                name.innerText = username;
+
+                const mealInfo = document.createElement("span");
+                mealInfo.className = "meal-info";
+                if (meal_count === 0) mealInfo.classList.add("zero");
+                mealInfo.innerText = `${meal_count} meal${meal_count !== 1 ? 's' : ''}`;
+
+                if (modified) {
+                    const modifiedTag = document.createElement("span");
+                    modifiedTag.className = "modified";
+                    modifiedTag.innerText = " (Modified)";
+                    mealInfo.appendChild(modifiedTag);
+                }
+
+                li.appendChild(name);
+                li.appendChild(mealInfo);
+                list.appendChild(li);
+            });
+        } catch (error) {
+            console.error("Error fetching active meals:", error);
+        }
     }
-}
 
+    async function fetchNotifications() {
+        try {
+            const res = await fetch("/notifications");
+            const data = await res.json();
+            notificationList.innerHTML = "";
 
-    // Call it on page load
+            let unseen = 0;
+            data.notifications.forEach(notif => {
+                const li = document.createElement("li");
+                li.innerText = notif.message;
+                notificationList.appendChild(li);
+                if (!notif.seen) unseen++;
+            });
+
+            if (unseen > 0) {
+                notificationBadge.style.display = "inline-block";
+                notificationBadge.innerText = unseen;
+            } else {
+                notificationBadge.style.display = "none";
+            }
+        } catch (err) {
+            console.error("Notification fetch error:", err);
+        }
+    }
+
+    if (notificationPanel) {
+        notificationPanel.addEventListener("click", async () => {
+            await fetchNotifications();
+
+            // Show dropdown
+            notificationList.classList.toggle("show");
+
+            // Mark as seen
+            await fetch("/notifications/mark_seen", { method: "POST" });
+            notificationBadge.style.display = "none";
+        });
+    }
+
     fetchActiveMealsToday();
+    fetchNotifications();
     setInterval(fetchActiveMealsToday, 5000);
 });
