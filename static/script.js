@@ -14,6 +14,25 @@ document.addEventListener("DOMContentLoaded", function () {
     function getSelectedMonth() {
         return monthPicker?.value || new Date().toISOString().slice(0, 7);
     }
+    if (bazarDateInput) {
+    bazarDateInput.addEventListener("change", async function () {
+        const date = this.value;
+        if (!date) return;
+
+        try {
+            const res = await fetch(`/bazar_entry?date=${date}`);
+            const data = await res.json();
+
+            document.getElementById("cost").value = data.cost ?? "";
+            document.getElementById("details").value = data.details ?? "";
+        } catch (e) {
+            console.error("Failed to fetch existing bazar entry", e);
+            document.getElementById("cost").value = "";
+            document.getElementById("details").value = "";
+        }
+    });
+    }
+
 
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
