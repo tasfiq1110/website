@@ -1,3 +1,5 @@
+# Full Flask app.py with correct meal submission and summary logic for Supabase
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -63,7 +65,6 @@ def auto_add_meals():
     cur.close()
     conn.close()
 
-# Auto insert 2 meals if user misses a day
 scheduler = BackgroundScheduler()
 scheduler.add_job(auto_add_meals, CronTrigger(hour=0, minute=0))
 scheduler.start()
@@ -78,7 +79,6 @@ def home():
 def register():
     if request.method == 'GET':
         return render_template("register.html")
-
     username = request.form['username']
     password = request.form['password']
     conn = get_db()
@@ -98,7 +98,6 @@ def register():
 def login_page():
     if request.method == 'GET':
         return render_template("login.html")
-
     username = request.form['username']
     password = request.form['password']
     conn = get_db()
@@ -136,12 +135,10 @@ def submit_meal():
     conn = get_db()
     cur = conn.cursor()
 
-    # Check if user has already submitted meals for that day
     cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s", (username, date))
     previous_count = cur.fetchone()['count']
     is_modified = 1 if previous_count > 0 else 0
 
-    # Delete previous meals
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
     if selected_meals:
@@ -151,7 +148,6 @@ def submit_meal():
                 VALUES (%s, %s, %s, %s, %s)
             """, (username, date, meal, is_modified, timestamp))
     else:
-        # No meals submitted, insert dummy row
         cur.execute("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
             VALUES (%s, %s, 'None', %s, %s)
@@ -162,9 +158,6 @@ def submit_meal():
     conn.close()
 
     return "Meal submitted (Modified)" if is_modified else "Meal submitted"
-
-
-
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
@@ -199,7 +192,7 @@ def personal_summary():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT date, COUNT(meal_type) AS count, MAX(is_modified) AS modified
+        SELECT date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
         FROM meals
         WHERE username = %s AND date LIKE %s
         GROUP BY date
@@ -239,7 +232,7 @@ def global_summary():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT username, date, COUNT(meal_type) AS count, MAX(is_modified) AS modified
+        SELECT username, date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
         FROM meals
         WHERE date LIKE %s
         GROUP BY username, date
@@ -285,12 +278,12 @@ def cost_summary():
     cur.execute("SELECT SUM(cost) FROM bazar WHERE date LIKE %s", (f"{month}-%",))
     total_bazar_cost = cur.fetchone()['sum'] or 0
 
-    cur.execute("SELECT COUNT(*) FROM meals WHERE date LIKE %s", (f"{month}-%",))
+    cur.execute("SELECT COUNT(*) FROM meals WHERE date LIKE %s AND meal_type != 'None'", (f"{month}-%",))
     total_meal_count = cur.fetchone()['count'] or 0
 
     meal_unit_cost = total_bazar_cost / total_meal_count if total_meal_count else 0
 
-    cur.execute("SELECT username, COUNT(*) FROM meals WHERE date LIKE %s GROUP BY username", (f"{month}-%",))
+    cur.execute("SELECT username, COUNT(*) FROM meals WHERE date LIKE %s AND meal_type != 'None' GROUP BY username", (f"{month}-%",))
     user_data = cur.fetchall()
 
     results = []
@@ -319,3 +312,4 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
