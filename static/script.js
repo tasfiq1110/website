@@ -13,26 +13,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (mealForm) {
-        mealForm.addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
-            const values = Array.from(checkboxes).map(cb => cb.value);
-            const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
+    mealForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
+    const values = Array.from(checkboxes).map(cb => cb.value);
+    const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
 
-            if (values.length === 0) {
-    showToast("Submitting with 0 meals (no meal selected).", "success");
+    if (values.length === 0) {
+        showToast("Submitting with 0 meals (no meal selected).", "success");
+        // Let it continue
     }
 
-            const res = await fetch("/submit_meal", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ meals: values, date })
-            });
+    const res = await fetch("/submit_meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meals: values, date })
+    });
 
-            const text = await res.text();
-            document.getElementById("mealResult").innerText = text;
-            showToast(text, res.ok ? "success" : "error");
-        });
+    const text = await res.text();
+    document.getElementById("mealResult").innerText = text;
+    showToast(text, res.ok ? "success" : "error");
+    });
     }
 
     if (bazarForm) {
