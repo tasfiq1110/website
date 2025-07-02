@@ -13,27 +13,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (mealForm) {
-    mealForm.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
-    const values = Array.from(checkboxes).map(cb => cb.value);
-    const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
+        mealForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
 
-    if (values.length === 0) {
-        showToast("Submitting with 0 meals (no meal selected).", "success");
-        // Let it continue
-    }
+            const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
+            const values = Array.from(checkboxes).map(cb => cb.value);
+            const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
 
-    const res = await fetch("/submit_meal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meals: values, date })
-    });
+            const extraMealInput = document.getElementById("extraMeal");
+            const extraMeal = extraMealInput ? parseInt(extraMealInput.value) || 0 : 0;
 
-    const text = await res.text();
-    document.getElementById("mealResult").innerText = text;
-    showToast(text, res.ok ? "success" : "error");
-    });
+            if (values.length === 0 && extraMeal === 0) {
+                showToast("Submitting with 0 meals.", "success");
+            }
+
+            const res = await fetch("/submit_meal", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ meals: values, date, extra_meal: extraMeal })
+            });
+
+            const text = await res.text();
+            document.getElementById("mealResult").innerText = text;
+            showToast(text, res.ok ? "success" : "error");
+        });
     }
 
     if (bazarForm) {
@@ -182,7 +185,7 @@ document.addEventListener("DOMContentLoaded", function () {
         toast.innerText = message;
 
         setTimeout(() => {
-            toast.className = "toast"; // hide it after 3s
+            toast.className = "toast";
         }, 3000);
     }
 });
