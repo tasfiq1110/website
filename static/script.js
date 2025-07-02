@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function fetchActiveMealsToday() {
     try {
         const res = await fetch("/active_meals_today");
-        const data = await res.json(); // expects { active_meals: [...] }
+        const data = await res.json(); // { active_meals: [...] }
         const list = document.getElementById("activeMealsList");
         list.innerHTML = "";
 
@@ -214,6 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Error fetching active meals:", error);
     }
 }
+
 
 
 
