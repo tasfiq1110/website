@@ -1,344 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Dashboard - Meal Tracker</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
-            padding: 1rem;
-            margin: 0;
-            color: #333;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: auto;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-            color: #222;
-        }
-
-        section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            padding: 1.2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        section h2 {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-            color: #444;
-        }
-
-        label {
-            font-weight: 600;
-            margin-bottom: 0.3rem;
-            display: block;
-        }
-
-        input[type="number"],
-        input[type="month"],
-        input[type="date"],
-        textarea {
-            width: 100%;
-            padding: 0.6rem;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 1rem;
-        }
-
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .checkbox-group label {
-            flex: 1 1 45%;
-            font-weight: normal;
-        }
-
-        button {
-            width: 100%;
-            padding: 0.8rem;
-            border: none;
-            border-radius: 8px;
-            background-color: #00acc1;
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #00838f;
-        }
-
-        .result {
-            margin-top: 0.5rem;
-            font-size: 0.95rem;
-            color: #00695c;
-            font-weight: 600;
-        }
-
-        .scrollable-table {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0.5rem;
-            background-color: #fafafa;
-        }
-
-        th, td {
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            font-size: 0.95rem;
-        }
-
-        th {
-            background-color: #00acc1;
-            color: white;
-        }
-
-        .logout {
-            display: block;
-            text-align: center;
-            margin-top: 2rem;
-            font-weight: bold;
-            color: crimson;
-            text-decoration: none;
-        }
-
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-            section h2 {
-                font-size: 1rem;
-            }
-            th, td {
-                font-size: 0.85rem;
-            }
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #323232;
-            color: white;
-            padding: 14px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.5s ease, visibility 0.5s;
-            z-index: 1000;
-        }
-
-        .toast.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .toast.success {
-            background-color: #00b894;
-        }
-
-        .toast.error {
-            background-color: #d63031;
-        }
-        .notification-icon {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        cursor: pointer;
-        z-index: 2000;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - Meal Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
+      padding: 1rem;
+      margin: 0;
+      color: #333;
     }
 
-    .notification-icon img {
-        width: 30px;
-        height: 30px;
+    .container {
+      max-width: 600px;
+      margin: auto;
     }
 
-    .notification-badge {
-        position: absolute;
-        top: -6px;
-        right: -6px;
-        background-color: red;
-        color: white;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 50%;
-        display: none;
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+      color: #222;
+      position: relative;
     }
 
-    /* Notification Panel */
+    /* Notification Icon */
+    .notification-bell {
+      position: absolute;
+      right: 0;
+      top: 0;
+      margin: 1rem;
+      cursor: pointer;
+      font-size: 1.5rem;
+    }
+
+    .notification-bell .dot {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 10px;
+      width: 10px;
+      background-color: red;
+      border-radius: 50%;
+    }
+
     .notification-panel {
-        position: fixed;
-        top: 60px;
-        right: 20px;
-        width: 300px;
-        max-height: 400px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        overflow-y: auto;
-        display: none;
-        z-index: 2000;
-        padding: 16px;
+      display: none;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
-    .notification-panel h4 {
-        margin-top: 0;
-        font-size: 1rem;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 8px;
+    .notification-panel.active {
+      display: block;
     }
 
     .notification-panel ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
+      padding-left: 1rem;
     }
 
     .notification-panel li {
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-        font-size: 0.9rem;
-        color: #333;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      color: #444;
     }
 
-    .notification-panel li:last-child {
-        border-bottom: none;
+    section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 1.2rem;
+      margin-bottom: 1.5rem;
     }
-    </style>
+
+    section h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #444;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    input[type="number"],
+    input[type="month"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 0.6rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .checkbox-group label {
+      flex: 1 1 45%;
+      font-weight: normal;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #00acc1;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #00838f;
+    }
+
+    .result {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      color: #00695c;
+      font-weight: 600;
+    }
+
+    .scrollable-table {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      background-color: #fafafa;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #00acc1;
+      color: white;
+    }
+
+    .logout {
+      display: block;
+      text-align: center;
+      margin-top: 2rem;
+      font-weight: bold;
+      color: crimson;
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      section h2 {
+        font-size: 1rem;
+      }
+      th, td {
+        font-size: 0.85rem;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #323232;
+      color: white;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, visibility 0.5s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .toast.success {
+      background-color: #00b894;
+    }
+
+    .toast.error {
+      background-color: #d63031;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>
+      Welcome, {{ session['username'] }}
+      <div id="notificationBell" class="notification-bell">
+        🔔
+        <span id="notifDot" class="dot" style="display: none;"></span>
+      </div>
+    </h1>
 
-<div class="notification-icon" onclick="toggleNotificationPanel()">
-  <img src="https://cdn-icons-png.flaticon.com/512/1827/1827392.png" alt="Bell">
-  <div id="notificationBadge" class="notification-badge">!</div>
-</div>
+    <!-- 🔔 Notification Panel -->
+    <div id="notificationPanel" class="notification-panel">
+      <h2>Notifications</h2>
+      <ul id="notificationList">
+        <li>Loading notifications...</li>
+      </ul>
+    </div>
 
-<div id="notificationPanel" class="notification-panel">
-  <h4>Notifications</h4>
-  <ul id="notificationList"></ul>
-</div>
-
-<div class="container">
-  <div id="toast" class="toast"></div>
-  <h1>Welcome, {{ session['username'] }}</h1>
-
-  <!-- Active Meals Today -->
-  <div class="active-meals-card">
+    <!-- 🍽 Active Meals Today -->
+    <div class="active-meals-card">
       <div class="active-meals-header">
         <img src="https://icon-library.com/images/meal-icon-png/meal-icon-png-17.jpg" alt="Meal Icon" class="meal-icon">
         <h3>Active Meals Today</h3>
       </div>
       <ul id="activeMealsList" class="active-meals-list"></ul>
-  </div>
+    </div>
 
-  <!-- Meal Submission -->
-  <section>
+    <!-- ✅ Submit Meal -->
+    <section>
       <h2>Submit Meal</h2>
-      <form id="mealForm"> ... </form>
-  </section>
+      <form id="mealForm">
+        <label for="mealDate">Select Date:</label>
+        <input type="date" id="mealDate" name="mealDate">
 
-  <!-- Bazar Cost -->
-  <section>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="meal" value="Breakfast"> Breakfast</label>
+          <label><input type="checkbox" name="meal" value="Lunch"> Lunch</label>
+          <label><input type="checkbox" name="meal" value="Dinner"> Dinner</label>
+        </div>
+
+        <label for="extraMeal">Extra Meals (Guests or others):</label>
+        <input type="number" id="extraMeal" name="extraMeal" min="0" value="0" placeholder="0">
+
+        <button type="submit">Submit Meal</button>
+        <div id="mealResult" class="result"></div>
+      </form>
+    </section>
+
+    <!-- 💸 Bazar Cost -->
+    <section>
       <h2>Submit Bazar Cost</h2>
-      <form id="bazarForm"> ... </form>
-  </section>
+      <form id="bazarForm">
+        <label for="bazarDate">Select Date:</label>
+        <input type="date" id="bazarDate" name="bazarDate">
+        <label for="cost">Amount (৳):</label>
+        <input type="number" id="cost" name="cost" required>
+        <label for="details">Details:</label>
+        <textarea id="details" name="details" required></textarea>
+        <button type="submit">Submit Bazar</button>
+        <div id="bazarResult" class="result"></div>
+      </form>
+    </section>
 
-  <!-- Month Picker -->
-  <section>
+    <!-- 📅 Select Month -->
+    <section>
       <h2>Select Month</h2>
       <input type="month" id="monthPicker">
-  </section>
+    </section>
 
-  <!-- Personal Summary -->
-  <section>
+    <!-- 📊 Personal Summary -->
+    <section>
       <h2>My Monthly Meal Summary</h2>
       <button id="personalSummaryBtn">Show Personal Summary</button>
       <div id="personalSummary" class="scrollable-table"></div>
-  </section>
+    </section>
 
-  <!-- Global Summary -->
-  <section>
+    <!-- 🌍 Global Summary -->
+    <section>
       <h2>Global Monthly Meal Summary</h2>
       <button id="globalSummaryBtn">Show Global Summary</button>
       <div id="globalSummary" class="scrollable-table"></div>
-  </section>
+    </section>
 
-  <!-- Cost Calculation -->
-  <section>
+    <!-- 💰 Cost Calculation -->
+    <section>
       <h2>Cost Calculation Per Person</h2>
       <button id="calculateCostBtn">Calculate Monthly Cost</button>
       <div id="costResult" class="scrollable-table"></div>
-  </section>
+    </section>
 
-  <a id="logout" href="/logout" class="logout">Logout</a>
-</div>
+    <a id="logout" href="/logout" class="logout">Logout</a>
+  </div>
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-<script>
-  async function fetchNotifications() {
-    try {
-      const res = await fetch('/notifications');
-      const data = await res.json();
-      const list = document.getElementById('notificationList');
-      const badge = document.getElementById('notificationBadge');
+  <div id="toast" class="toast"></div>
 
-      list.innerHTML = '';
-      let hasUnseen = false;
-
-      data.notifications.forEach(n => {
-        const li = document.createElement('li');
-        li.textContent = `${n.message} (${n.date})`;
-        if (!n.seen) hasUnseen = true;
-        list.appendChild(li);
-      });
-
-      badge.style.display = hasUnseen ? 'block' : 'none';
-    } catch (err) {
-      console.error('Failed to fetch notifications', err);
-    }
-  }
-
-  function toggleNotificationPanel() {
-    const panel = document.getElementById('notificationPanel');
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-
-    if (panel.style.display === 'block') {
-      fetch('/notifications/mark_seen', { method: 'POST' });
-      document.getElementById('notificationBadge').style.display = 'none';
-    }
-  }
-
-  // Initial fetch and refresh every 10s
-  fetchNotifications();
-  setInterval(fetchNotifications, 10000);
-</script>
-
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
