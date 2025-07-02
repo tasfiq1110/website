@@ -117,7 +117,8 @@ def login_page():
         session['username'] = username
         return redirect(url_for('dashboard'))
     return "Invalid Credentials"
-    @app.route('/bazar_entry')
+    
+@app.route('/bazar_entry')
 def get_bazar_entry():
     if 'username' not in session:
         return "Unauthorized", 401
