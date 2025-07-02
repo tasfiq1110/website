@@ -186,23 +186,27 @@ def submit_bazar():
 
 @app.route('/active_meals_today')
 def active_meals_today():
-    today = datetime.now().strftime("%Y-%m-%d")
-    conn = get_db()
-    cur = conn.cursor()
+    # Get today's date in YYYY-MM-DD format
+    today_str = datetime.now().strftime('%Y-%m-%d')
 
-    cur.execute("""
-        SELECT username, COUNT(*) AS meal_count
-        FROM meals
-        WHERE date = %s AND meal_type != 'None'
+    # Connect to the database
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Query: Count meals per user for today
+    cursor.execute('''
+        SELECT username, COUNT(*) as meal_count 
+        FROM meals 
+        WHERE date = ? 
         GROUP BY username
-        HAVING COUNT(*) > 0
-        ORDER BY meal_count DESC
-    """, (today,))
-    
-    active_users = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify({"active_meals": active_users})
+    ''', (today_str,))
+
+    rows = cursor.fetchall()
+
+    # Format response as a list of dictionaries
+    active_meals = [{"username": row[0], "meal_count": row[1]} for row in rows]
+
+    return jsonify({"active_meals": active_meals})
 
 
 @app.route('/summary/personal')
