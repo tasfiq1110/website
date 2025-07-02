@@ -8,64 +8,47 @@ document.addEventListener("DOMContentLoaded", function () {
     const bazarDateInput = document.getElementById("bazarDate");
     const monthPicker = document.getElementById("monthPicker");
     const notificationPanel = document.getElementById("notificationPanel");
-    const unseenBadge = document.getElementById("unseenBadge");
     const notificationToggle = document.getElementById("notificationToggle");
+    const unseenBadge = document.getElementById("unseenBadge");
 
     function getSelectedMonth() {
         return monthPicker?.value || new Date().toISOString().slice(0, 7);
     }
-    if (bazarDateInput) {
-    bazarDateInput.addEventListener("change", async function () {
-        const date = this.value;
-        if (!date) return;
 
-        try {
-            const res = await fetch(`/bazar_entry?date=${date}`);
-            const data = await res.json();
-
-            document.getElementById("cost").value = data.cost ?? "";
-            document.getElementById("details").value = data.details ?? "";
-        } catch (e) {
-            console.error("Failed to fetch existing bazar entry", e);
-            document.getElementById("cost").value = "";
-            document.getElementById("details").value = "";
-        }
-    });
-    }
-
-
+    // ========== 🍽 Meal Submission ==========
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
             e.preventDefault();
             const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
-            const values = Array.from(checkboxes).map(cb => cb.value);
-            const date = mealDateInput?.value || null;
-            const extraMeal = parseInt(document.getElementById("extraMeal")?.value) || 0;
+            const meals = Array.from(checkboxes).map(cb => cb.value);
+            const extra = parseInt(document.getElementById("extraMeal")?.value || "0");
+            const date = mealDateInput?.value;
 
-            if (values.length === 0 && extraMeal === 0) {
+            if (!meals.length && extra === 0) {
                 showToast("Submitting with 0 meals.", "success");
             }
 
             const res = await fetch("/submit_meal", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ meals: values, date, extra_meal: extraMeal })
+                body: JSON.stringify({ meals, extra_meal: extra, date })
             });
 
-            const text = await res.text();
-            document.getElementById("mealResult").innerText = text;
-            showToast(text, res.ok ? "success" : "error");
+            const msg = await res.text();
+            document.getElementById("mealResult").innerText = msg;
+            showToast(msg, res.ok ? "success" : "error");
             fetchActiveMealsToday();
             fetchNotifications();
         });
     }
 
+    // ========== 💸 Bazar Submission ==========
     if (bazarForm) {
         bazarForm.addEventListener("submit", async function (e) {
             e.preventDefault();
             const cost = document.getElementById("cost").value;
             const details = document.getElementById("details").value;
-            const date = bazarDateInput?.value || null;
+            const date = bazarDateInput?.value;
 
             const res = await fetch("/submit_bazar", {
                 method: "POST",
@@ -73,142 +56,162 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify({ cost, details, date })
             });
 
-            const text = await res.text();
-            document.getElementById("bazarResult").innerText = text;
-            showToast(text, res.ok ? "success" : "error");
+            const msg = await res.text();
+            document.getElementById("bazarResult").innerText = msg;
+            showToast(msg, res.ok ? "success" : "error");
             fetchNotifications();
+        });
+
+        // Autofill if data exists for selected date
+        bazarDateInput.addEventListener("change", async function () {
+            try {
+                const res = await fetch(`/bazar_entry?date=${this.value}`);
+                const data = await res.json();
+                document.getElementById("cost").value = data.cost || "";
+                document.getElementById("details").value = data.details || "";
+            } catch {
+                document.getElementById("cost").value = "";
+                document.getElementById("details").value = "";
+            }
         });
     }
 
+    // ========== 📊 Summaries ==========
     if (personalSummaryBtn) {
-        personalSummaryBtn.addEventListener("click", async function () {
+        personalSummaryBtn.addEventListener("click", async () => {
             const month = getSelectedMonth();
-            const res = await fetch(/summary/personal?month=${month});
-            const result = document.getElementById("personalSummary");
-            result.innerHTML = "";
+            const res = await fetch(`/summary/personal?month=${month}`);
+            const target = document.getElementById("personalSummary");
+            target.innerHTML = "";
 
             if (res.ok) {
                 const data = await res.json();
-                result.appendChild(generateSummaryTable(data.summary, true));
+                target.appendChild(generateSummaryTable(data.summary, true));
             } else {
-                result.innerText = "Failed to load summary.";
+                target.innerText = "Failed to load summary.";
                 showToast("Failed to load personal summary", "error");
             }
         });
     }
 
     if (globalSummaryBtn) {
-        globalSummaryBtn.addEventListener("click", async function () {
+        globalSummaryBtn.addEventListener("click", async () => {
             const month = getSelectedMonth();
-            const res = await fetch(/summary/global?month=${month});
-            const result = document.getElementById("globalSummary");
-            result.innerHTML = "";
+            const res = await fetch(`/summary/global?month=${month}`);
+            const target = document.getElementById("globalSummary");
+            target.innerHTML = "";
 
             if (res.ok) {
                 const data = await res.json();
-                result.appendChild(generateSummaryTable(data.summary, false));
+                target.appendChild(generateSummaryTable(data.summary, false));
             } else {
-                result.innerText = "Failed to load summary.";
+                target.innerText = "Failed to load summary.";
                 showToast("Failed to load global summary", "error");
             }
         });
     }
 
     if (calculateCostBtn) {
-        calculateCostBtn.addEventListener("click", async function () {
+        calculateCostBtn.addEventListener("click", async () => {
             const month = getSelectedMonth();
-            const res = await fetch(/summary/cost?month=${month});
-            const result = document.getElementById("costResult");
-            result.innerHTML = "";
+            const res = await fetch(`/summary/cost?month=${month}`);
+            const target = document.getElementById("costResult");
+            target.innerHTML = "";
 
             if (res.ok) {
                 const data = await res.json();
-                const unitCostText = document.createElement("p");
-                unitCostText.innerText = Meal Unit Cost: ৳${data.meal_unit_cost.toFixed(2)};
-                result.appendChild(unitCostText);
+                const unitCost = document.createElement("p");
+                unitCost.innerText = `Meal Unit Cost: ৳${data.meal_unit_cost.toFixed(2)}`;
+                target.appendChild(unitCost);
 
                 const table = document.createElement("table");
-                const headerRow = document.createElement("tr");
-                ["Username", "Total Meals", "Bazar Spent (৳)", "Total Cost (৳)", "Balance (৳)"].forEach(h => {
-            const th = document.createElement("th");
-            th.innerText = h;
-            headerRow.appendChild(th);
-        });
-                table.appendChild(headerRow);
+                const headers = ["Username", "Total Meals", "Bazar Spent (৳)", "Total Cost (৳)", "Balance (৳)"];
+                table.appendChild(buildRow(headers, "th"));
 
                 data.user_costs.forEach(row => {
-        const tr = document.createElement("tr");
-        const cells = [
-        row.username,
-        row.meals,
-        row.spent || 0,
-        row.meals * data.meal_unit_cost,
-        row.balance
-        ];
+                    const values = [
+                        row.username,
+                        row.meals,
+                        row.spent || 0,
+                        (row.meals * data.meal_unit_cost).toFixed(2),
+                        row.balance.toFixed(2)
+                    ];
+                    table.appendChild(buildRow(values));
+                });
 
-        cells.forEach(val => {
-            const td = document.createElement("td");
-            td.innerText = typeof val === "number" ? val.toFixed(2) : val;
-            tr.appendChild(td);
-        });
-
-    table.appendChild(tr);
-});
-
-
-                const wrapper = document.createElement("div");
-                wrapper.className = "table-wrapper";
-                wrapper.appendChild(table);
-                result.appendChild(wrapper);
+                target.appendChild(table);
             } else {
-                result.innerText = "Failed to calculate cost.";
+                target.innerText = "Failed to calculate cost.";
                 showToast("Cost calculation failed", "error");
             }
         });
     }
 
-    function generateSummaryTable(summary, isPersonal) {
-        const table = document.createElement("table");
-        const thead = document.createElement("thead");
-        const headerRow = document.createElement("tr");
+    // ========== 🧩 Utility Functions ==========
+    function buildRow(values, type = "td") {
+        const tr = document.createElement("tr");
+        values.forEach(v => {
+            const cell = document.createElement(type);
+            cell.innerText = v;
+            tr.appendChild(cell);
+        });
+        return tr;
+    }
 
+    function generateSummaryTable(data, isPersonal) {
         const headers = isPersonal
             ? ["Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"]
             : ["Username", "Date", "Count", "Modified", "Bazar ৳", "Details", "Bazar Modified"];
 
-        headers.forEach(h => {
-            const th = document.createElement("th");
-            th.innerText = h;
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-
-        const tbody = document.createElement("tbody");
-        summary.forEach(row => {
-            const tr = document.createElement("tr");
-            row.forEach(val => {
-                const td = document.createElement("td");
-                td.innerText = val;
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "table-wrapper";
-        wrapper.appendChild(table);
-        return wrapper;
+        const table = document.createElement("table");
+        table.appendChild(buildRow(headers, "th"));
+        data.forEach(row => table.appendChild(buildRow(row)));
+        return table;
     }
 
     function showToast(message, type = "success") {
         const toast = document.getElementById("toast");
-        if (!toast) return;
-        toast.className = toast show ${type};
         toast.innerText = message;
-        setTimeout(() => toast.className = "toast", 3000);
+        toast.className = `toast show ${type}`;
+        setTimeout(() => {
+            toast.className = "toast";
+        }, 3000);
+    }
+
+    // ========== 🔔 Notifications ==========
+    if (notificationToggle) {
+        notificationToggle.addEventListener("click", async () => {
+            const isOpen = notificationPanel.classList.toggle("active");
+            if (isOpen) {
+                await fetch("/notifications/mark_seen", { method: "POST" });
+                document.getElementById("notifDot").style.display = "none";
+            }
+        });
+    }
+
+    async function fetchNotifications() {
+        try {
+            const res = await fetch("/notifications");
+            const data = await res.json();
+            const list = document.getElementById("notificationList");
+            const notifDot = document.getElementById("notifDot");
+            list.innerHTML = "";
+            let unseenCount = 0;
+
+            data.notifications.forEach(n => {
+                const li = document.createElement("li");
+                li.innerText = `[${n.timestamp}] ${n.message}`;
+                if (!n.seen) {
+                    li.classList.add("unseen");
+                    unseenCount++;
+                }
+                list.appendChild(li);
+            });
+
+            notifDot.style.display = unseenCount > 0 ? "inline-block" : "none";
+        } catch (err) {
+            console.error("Failed to fetch notifications", err);
+        }
     }
 
     async function fetchActiveMealsToday() {
@@ -219,20 +222,18 @@ document.addEventListener("DOMContentLoaded", function () {
             list.innerHTML = "";
 
             if (!data.active_meals?.length) {
-                const li = document.createElement("li");
-                li.className = "no-data";
-                li.innerText = "No meals submitted today.";
-                list.appendChild(li);
+                list.innerHTML = "<li>No meals submitted today.</li>";
                 return;
             }
 
             data.active_meals.forEach(({ username, meal_count, modified }) => {
                 const li = document.createElement("li");
-                li.innerHTML = <span class="username">${username}</span>
-                                <span class="meal-info ${meal_count === 0 ? 'zero' : ''}">
-                                    ${meal_count} meal${meal_count !== 1 ? 's' : ''}
-                                    ${modified ? '<span class="modified"> (Modified)</span>' : ''}
-                                </span>;
+                li.innerHTML = `
+                    <span class="username">${username}</span>
+                    <span class="meal-info ${meal_count === 0 ? 'zero' : ''}">
+                        ${meal_count} meal${meal_count !== 1 ? 's' : ''}
+                        ${modified ? '<span class="modified"> (Modified)</span>' : ''}
+                    </span>`;
                 list.appendChild(li);
             });
         } catch (e) {
@@ -240,62 +241,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    async function fetchNotifications() {
-    try {
-        const res = await fetch("/notifications");
-        const data = await res.json();
-        const list = document.getElementById("notificationList");
-
-        list.innerHTML = "";
-
-        let unseenCount = 0;
-
-        if (data.notifications.length === 0) {
-            const li = document.createElement("li");
-            li.innerText = "No notifications yet.";
-            list.appendChild(li);
-        } else {
-            data.notifications.forEach(n => {
-                const li = document.createElement("li");
-                li.className = "notification-item";
-                if (!n.seen) {
-                    li.classList.add("unseen");
-                    unseenCount++;
-                }
-                li.innerText = [${n.timestamp}] ${n.message};
-                list.appendChild(li);
-            });
-        }
-
-        const notifDot = document.getElementById("notifDot");
-        if (unseenCount > 0) {
-            notifDot.style.display = "inline-block";
-        } else {
-            notifDot.style.display = "none";
-        }
-
-    } catch (err) {
-        console.error("Failed to fetch notifications", err);
-        const list = document.getElementById("notificationList");
-        list.innerHTML = "<li>Error loading notifications.</li>";
-    }
-}
-
-
-    if (notificationToggle) {
-        notificationToggle.addEventListener("click", async () => {
-            const isShown = notificationPanel.style.display === "block";
-            notificationPanel.style.display = isShown ? "none" : "block";
-
-            if (!isShown) {
-    await fetch("/notifications/mark_seen", { method: "POST" });
-    unseenBadge.style.display = "none";
-    const notifDot = document.getElementById("notifDot");
-    if (notifDot) notifDot.style.display = "none"; // ✅ Also hide dot
-}
-        });
-    }
-
+    // ========== ⏱ Initial Load ==========
+    const now = new Date();
+    monthPicker.value = now.toISOString().slice(0, 7);
     fetchActiveMealsToday();
     fetchNotifications();
     setInterval(fetchActiveMealsToday, 5000);
