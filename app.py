@@ -136,35 +136,25 @@ def submit_meal():
     conn = get_db()
     cur = conn.cursor()
 
-    if not selected_meals:
-        # Zero meals submitted – mark the day with a dummy "None" type if not already submitted
-        cur.execute("SELECT * FROM meals WHERE username=%s AND date=%s", (username, date))
-        already = cur.fetchone()
-        if not already:
-            cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                           VALUES (%s, %s, %s, 0, %s)""", (username, date, "None", timestamp))
-            conn.commit()
-        cur.close()
-        conn.close()
-        return "Zero meals submitted"
+    # 🔥 First, delete all existing meals for this user on that date
+    cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
-    modified_flag = 0
-
+    # ✅ Then, insert only the selected ones (if any)
     for meal in selected_meals:
-        cur.execute("SELECT * FROM meals WHERE username=%s AND date=%s AND meal_type=%s", (username, date, meal))
-        existing = cur.fetchone()
-        if existing:
-            cur.execute("UPDATE meals SET is_modified=1, timestamp=%s WHERE id=%s", (timestamp, existing['id']))
-            modified_flag = 1
-        else:
-            cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                           VALUES (%s, %s, %s, 0, %s)""", (username, date, meal, timestamp))
+        cur.execute("""
+            INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+            VALUES (%s, %s, %s, 0, %s)
+        """, (username, date, meal, timestamp))
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return "Meal submitted (Modified)" if modified_flag else "Meal submitted"
+    if selected_meals:
+        return "Meal submitted"
+    else:
+        return "Submitted 0 meals (cleared previous)"
+
 
 
 @app.route('/submit_bazar', methods=['POST'])
