@@ -8,8 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const bazarDateInput = document.getElementById("bazarDate");
     const monthPicker = document.getElementById("monthPicker");
     const notificationPanel = document.getElementById("notificationPanel");
-    const notificationBadge = document.getElementById("notificationBadge");
-    const notificationList = document.getElementById("notificationList");
+    const unseenBadge = document.getElementById("unseenBadge");
 
     function getSelectedMonth() {
         return monthPicker && monthPicker.value ? monthPicker.value : new Date().toISOString().slice(0, 7);
@@ -18,11 +17,16 @@ document.addEventListener("DOMContentLoaded", function () {
     if (mealForm) {
         mealForm.addEventListener("submit", async function (e) {
             e.preventDefault();
+
             const checkboxes = document.querySelectorAll('input[name="meal"]:checked');
             const values = Array.from(checkboxes).map(cb => cb.value);
-            const date = mealDateInput && mealDateInput.value ? mealDateInput.value : null;
+            const date = mealDateInput?.value || null;
             const extraMealInput = document.getElementById("extraMeal");
             const extraMeal = extraMealInput ? parseInt(extraMealInput.value) || 0 : 0;
+
+            if (values.length === 0 && extraMeal === 0) {
+                showToast("Submitting with 0 meals.", "success");
+            }
 
             const res = await fetch("/submit_meal", {
                 method: "POST",
@@ -34,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("mealResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
             fetchActiveMealsToday();
-            fetchNotifications();
+            fetchNotifications(); // refresh notifications
         });
     }
 
@@ -43,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
             e.preventDefault();
             const cost = document.getElementById("cost").value;
             const details = document.getElementById("details").value;
-            const date = bazarDateInput && bazarDateInput.value ? bazarDateInput.value : null;
+            const date = bazarDateInput?.value || null;
 
             const res = await fetch("/submit_bazar", {
                 method: "POST",
@@ -54,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const text = await res.text();
             document.getElementById("bazarResult").innerText = text;
             showToast(text, res.ok ? "success" : "error");
-            fetchNotifications();
+            fetchNotifications(); // refresh notifications
         });
     }
 
@@ -109,6 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const table = document.createElement("table");
                 const headerRow = document.createElement("tr");
+
                 ["Username", "Total Meals", "Cost/Meal (৳)", "Total Cost (৳)"].forEach(h => {
                     const th = document.createElement("th");
                     th.innerText = h;
@@ -116,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 table.appendChild(headerRow);
+
                 data.user_costs.forEach(row => {
                     const tr = document.createElement("tr");
                     const values = [row.username, row.meals, data.meal_unit_cost, row.cost];
@@ -191,6 +197,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const res = await fetch("/active_meals_today");
             const data = await res.json();
+
             const list = document.getElementById("activeMealsList");
             list.innerHTML = "";
 
@@ -204,6 +211,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             data.active_meals.forEach(({ username, meal_count, modified }) => {
                 const li = document.createElement("li");
+
                 const name = document.createElement("span");
                 name.className = "username";
                 name.innerText = username;
@@ -226,6 +234,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         } catch (error) {
             console.error("Error fetching active meals:", error);
+            const list = document.getElementById("activeMealsList");
+            list.innerHTML = "<li class='no-data'>Failed to load active meals.</li>";
         }
     }
 
@@ -233,37 +243,42 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const res = await fetch("/notifications");
             const data = await res.json();
-            notificationList.innerHTML = "";
+            const panel = document.getElementById("notificationPanel");
 
-            let unseen = 0;
-            data.notifications.forEach(notif => {
-                const li = document.createElement("li");
-                li.innerText = notif.message;
-                notificationList.appendChild(li);
-                if (!notif.seen) unseen++;
+            panel.innerHTML = "";
+
+            let unseenCount = 0;
+
+            data.notifications.forEach(n => {
+                const div = document.createElement("div");
+                div.className = "notification";
+                if (!n.seen) {
+                    div.classList.add("unseen");
+                    unseenCount++;
+                }
+                div.innerText = `[${n.date}] ${n.message}`;
+                panel.appendChild(div);
             });
 
-            if (unseen > 0) {
-                notificationBadge.style.display = "inline-block";
-                notificationBadge.innerText = unseen;
-            } else {
-                notificationBadge.style.display = "none";
-            }
+            unseenBadge.style.display = unseenCount > 0 ? "inline-block" : "none";
+            unseenBadge.innerText = unseenCount;
+
         } catch (err) {
-            console.error("Notification fetch error:", err);
+            console.error("Failed to fetch notifications", err);
         }
     }
 
-    if (notificationPanel) {
-        notificationPanel.addEventListener("click", async () => {
-            await fetchNotifications();
+    const notificationToggle = document.getElementById("notificationToggle");
+    if (notificationToggle) {
+        notificationToggle.addEventListener("click", async function () {
+            const panel = document.getElementById("notificationPanel");
+            panel.style.display = panel.style.display === "block" ? "none" : "block";
 
-            // Show dropdown
-            notificationList.classList.toggle("show");
-
-            // Mark as seen
-            await fetch("/notifications/mark_seen", { method: "POST" });
-            notificationBadge.style.display = "none";
+            // Mark all as seen if panel is shown
+            if (panel.style.display === "block") {
+                unseenBadge.style.display = "none";
+                await fetch("/notifications/mark_seen", { method: "POST" });
+            }
         });
     }
 
