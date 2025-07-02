@@ -127,7 +127,8 @@ def submit_meal():
         return "Invalid data", 400
 
     username = session['username']
-    selected_meals = data['meals']
+    selected_meals = data.get('meals', [])
+    extra_meal = int(data.get('extra_meal', 0) or 0)
     now = datetime.now()
     date = data.get("date") or now.strftime("%Y-%m-%d")
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -141,12 +142,22 @@ def submit_meal():
 
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
-    if selected_meals:
-        for meal in selected_meals:
-            cur.execute("""
-                INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (username, date, meal, is_modified, timestamp))
+    meal_entries = []
+
+    # Add normal selected meals
+    for meal in selected_meals:
+        meal_entries.append((username, date, meal, is_modified, timestamp))
+
+    # Add extra meals
+    for _ in range(extra_meal):
+        meal_entries.append((username, date, "Extra", is_modified, timestamp))
+
+    # Insert or fallback to 'None'
+    if meal_entries:
+        cur.executemany("""
+            INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+            VALUES (%s, %s, %s, %s, %s)
+        """, meal_entries)
     else:
         cur.execute("""
             INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
@@ -158,6 +169,7 @@ def submit_meal():
     conn.close()
 
     return "Meal submitted (Modified)" if is_modified else "Meal submitted"
+
 
 @app.route('/submit_bazar', methods=['POST'])
 def submit_bazar():
