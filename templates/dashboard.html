@@ -176,10 +176,14 @@
         <h1>Welcome, {{ session['username'] }}</h1>
 
         <!-- Active Meals Today -->
-<section id="activeMealsTodaySection">
-    <h2>🍱 Active Meals Today</h2>
-    <ul id="activeMealsList" class="list-group mt-2" style="list-style: none; padding-left: 0;"></ul>
-</section>
+<div class="active-meals-card">
+    <div class="active-meals-header">
+        <img src="/static/icons/meal-icon.png" alt="Meals" class="meal-icon">
+        <h3>Active Meals Today</h3>
+    </div>
+    <ul id="activeMealsList" class="active-meals-list"></ul>
+</div>
+
 
 
         <!-- Meal Submission -->
