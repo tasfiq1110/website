@@ -47,29 +47,6 @@
       background-color: red;
       border-radius: 50%;
     }
-    .calendar {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  margin-top: 1rem;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-.calendar th, .calendar td {
-  padding: 0.7rem;
-  border: 1px solid #ddd;
-  text-align: center;
-  font-size: 0.9rem;
-}
-.calendar th {
-  background-color: #00acc1;
-  color: white;
-}
-.calendar td {
-  height: 50px;
-}
-
 
     .notification-panel {
       display: none;
@@ -134,22 +111,6 @@
       gap: 1rem;
       margin-bottom: 1rem;
     }
-    .calendar {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-.calendar th,
-.calendar td {
-  border: 1px solid #ddd;
-  text-align: center;
-  padding: 10px;
-}
-.calendar td {
-  cursor: default;
-  font-weight: bold;
-}
-
 
     .checkbox-group label {
       flex: 1 1 45%;
@@ -320,13 +281,9 @@
 
     <!-- 📅 Select Month -->
     <section>
-      <h2>Select Month For Summary</h2>
+      <h2>Select Month</h2>
       <input type="month" id="monthPicker">
     </section>
-
-  
-
-
 
     <!-- 📊 Personal Summary -->
     <section>
@@ -348,20 +305,11 @@
       <button id="calculateCostBtn">Calculate Monthly Cost</button>
       <div id="costResult" class="scrollable-table"></div>
     </section>
-    <!-- 📄 PDF Download -->
-<section>
-  <h2>Download Full Summary</h2>
-  <button id="downloadPdfBtn">📄 Download Full Summary as PDF</button>
-</section>
-
 
     <a id="logout" href="/logout" class="logout">Logout</a>
   </div>
 
   <div id="toast" class="toast"></div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
