@@ -184,6 +184,27 @@ def submit_bazar():
     conn.close()
     return "Bazar submitted (Modified)" if is_modified else "Bazar submitted"
 
+@app.route('/active_meals_today')
+def active_meals_today():
+    today = datetime.now().strftime("%Y-%m-%d")
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT username, COUNT(*) AS meal_count
+        FROM meals
+        WHERE date = %s AND meal_type != 'None'
+        GROUP BY username
+        HAVING COUNT(*) > 0
+        ORDER BY meal_count DESC
+    """, (today,))
+    
+    active_users = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"active_meals": active_users})
+
+
 @app.route('/summary/personal')
 def personal_summary():
     if 'username' not in session:
