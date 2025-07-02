@@ -49,9 +49,9 @@ def init_db():
 init_db()
 
 def add_notification(message):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as conn:
         cur = conn.cursor()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cur.execute("INSERT INTO notifications (message, timestamp) VALUES (%s, %s)", (message, timestamp))
         conn.commit()
 
@@ -142,18 +142,13 @@ def submit_meal():
 
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s", (username, date))
     previous_count = cur.fetchone()['count']
     is_modified = 1 if previous_count > 0 else 0
 
     if is_modified:
-        cur.execute("SELECT COUNT(*) FROM meals WHERE username = %s AND date = %s AND meal_type != 'None'", (username, date))
-        old_count = cur.fetchone()['count']
-        new_count = len(selected_meals) + extra_meal
-        if old_count != new_count:
-            message = f"{username} modified meal on {date}: {old_count} → {new_count}"
-            add_notification(message)
+        cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s AND meal_type != 'None'", (username, date))
+        old_meals = cur.fetchone()['count']
 
     cur.execute("DELETE FROM meals WHERE username = %s AND date = %s", (username, date))
 
@@ -164,12 +159,17 @@ def submit_meal():
         cur.executemany("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
                            VALUES (%s, %s, %s, %s, %s)""", meal_entries)
     else:
-        cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                       VALUES (%s, %s, 'None', %s, %s)""", (username, date, is_modified, timestamp))
+        cur.execute("INSERT INTO meals (username, date, meal_type, is_modified, timestamp) VALUES (%s, %s, 'None', %s, %s)",
+                    (username, date, is_modified, timestamp))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    if is_modified:
+        new_meal_count = len(selected_meals) + extra_meal
+        add_notification(f"{username} modified meals on {date}: {old_meals} → {new_meal_count}")
+
     return "Meal submitted (Modified)" if is_modified else "Meal submitted"
 
 @app.route('/submit_bazar', methods=['POST'])
@@ -185,25 +185,22 @@ def submit_bazar():
 
     conn = get_db()
     cur = conn.cursor()
-
-    cur.execute("SELECT COUNT(*) FROM bazar WHERE username = %s AND date = %s", (username, date))
-    count = cur.fetchone()['count']
-    is_modified = count > 0
-
-    if is_modified:
-        cur.execute("SELECT cost FROM bazar WHERE username = %s AND date = %s", (username, date))
-        old_cost = cur.fetchone()['cost']
-        if old_cost != cost:
-            message = f"{username} modified bazar on {date}: ৳{old_cost} → ৳{cost}"
-            add_notification(message)
+    cur.execute("SELECT cost FROM bazar WHERE username = %s AND date = %s", (username, date))
+    old = cur.fetchone()
+    is_modified = old is not None
+    old_cost = old['cost'] if is_modified else 0
 
     cur.execute("DELETE FROM bazar WHERE username = %s AND date = %s", (username, date))
-    cur.execute("""INSERT INTO bazar (username, date, cost, details, timestamp)
-                   VALUES (%s, %s, %s, %s, %s)""", (username, date, cost, details, timestamp))
+    cur.execute("INSERT INTO bazar (username, date, cost, details, timestamp) VALUES (%s, %s, %s, %s, %s)",
+                (username, date, cost, details, timestamp))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    if is_modified:
+        add_notification(f"{username} modified bazar cost on {date}: ৳{old_cost} → ৳{cost}")
+
     return "Bazar submitted (Modified)" if is_modified else "Bazar submitted"
 
 @app.route('/notifications')
@@ -214,12 +211,12 @@ def get_notifications():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM notifications ORDER BY id DESC")
-    rows = cur.fetchall()
-    for r in rows:
-        r["unseen"] = username not in r["seen_by"]
+    notifications = cur.fetchall()
+    for n in notifications:
+        n['seen'] = username in (n['seen_by'] or [])
     cur.close()
     conn.close()
-    return jsonify(rows)
+    return jsonify(notifications)
 
 @app.route('/notifications/mark_seen', methods=['POST'])
 def mark_notifications_seen():
@@ -228,11 +225,15 @@ def mark_notifications_seen():
     username = session['username']
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("UPDATE notifications SET seen_by = array_append(seen_by, %s) WHERE NOT (%s = ANY(seen_by))", (username, username))
+    cur.execute("""
+        UPDATE notifications
+        SET seen_by = array_append(seen_by, %s)
+        WHERE NOT (%s = ANY(seen_by))
+    """, (username, username))
     conn.commit()
     cur.close()
     conn.close()
-    return "Seen"
+    return jsonify({"status": "seen"})
 
 @app.route('/logout')
 def logout():
