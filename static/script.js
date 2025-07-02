@@ -196,45 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return table;
     }
 
-    // ========== 📆 Calendar Loader ==========
-    function renderCalendar(mealData, monthStr) {
-        const calendar = document.getElementById("mealCalendar");
-        calendar.innerHTML = "";
-
-        const [year, month] = monthStr.split("-");
-        const days = new Date(year, month, 0).getDate();
-        const firstDay = new Date(`${monthStr}-01`).getDay();
-
-        let html = "<table class='calendar'><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr><tr>";
-
-        for (let i = 0; i < firstDay; i++) html += "<td></td>";
-
-        for (let d = 1; d <= days; d++) {
-            const date = `${monthStr}-${d.toString().padStart(2, '0')}`;
-            const status = mealData[date] || "none";
-
-            let bg =
-                status === "none" ? "#fce4ec" :
-                status === "modified" ? "#fff3cd" :
-                "#d4edda";
-
-            html += `<td style="background-color:${bg};">${d}</td>`;
-            if ((firstDay + d) % 7 === 0) html += "</tr><tr>";
-        }
-
-        html += "</tr></table>";
-        calendar.innerHTML = html;
-    }
-
-    function loadMealCalendar(month) {
-        fetch(`/calendar/meals?month=${month}`)
-            .then(res => res.json())
-            .then(data => renderCalendar(data.dates, month));
-    }
-
-    document.getElementById("calendarMonth")?.addEventListener("change", e => {
-        loadMealCalendar(e.target.value);
-    });
+   
 
     // ========== 🔔 Notification Toggle ==========
     notificationToggle?.addEventListener("click", async () => {
