@@ -238,119 +238,90 @@ def active_meals_today():
     conn.close()
     return jsonify({"active_meals": rows})
 @app.route('/summary/personal')
-def summary_personal():
+def personal_summary():
     if 'username' not in session:
         return "Unauthorized", 401
 
     username = session['username']
-    month = request.args.get('month')
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
     conn = get_db()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT date,
-               COUNT(*) FILTER (WHERE meal_type != 'None') as meal_count,
-               MAX(is_modified) as modified
+        SELECT date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
         FROM meals
         WHERE username = %s AND date LIKE %s
         GROUP BY date
-        ORDER BY date
     """, (username, f"{month}-%"))
-
-    meal_data = {row['date']: row for row in cur.fetchall()}
+    meals = {row['date']: {"count": row['count'], "modified": row['modified']} for row in cur.fetchall()}
 
     cur.execute("""
-        SELECT date, cost, details FROM bazar
+        SELECT date, COUNT(*) AS bazar_count, SUM(cost) AS total_cost, STRING_AGG(details, '; ') AS details
+        FROM bazar
         WHERE username = %s AND date LIKE %s
-        ORDER BY date
+        GROUP BY date
     """, (username, f"{month}-%"))
+    bazar = {row['date']: row for row in cur.fetchall()}
 
-    rows = []
-    for bazar in cur.fetchall():
-        d = bazar['date']
-        meal_info = meal_data.get(d, {'meal_count': 0, 'modified': 0})
-        rows.append([
-            d,
-            meal_info['meal_count'],
-            "Yes" if meal_info['modified'] else "No",
-            bazar['cost'],
-            bazar['details'],
-            "Yes"
-        ])
-
-    for d in sorted(set(meal_data.keys()) - set(row[0] for row in rows)):
-        meal_info = meal_data[d]
-        rows.append([
-            d,
-            meal_info['meal_count'],
-            "Yes" if meal_info['modified'] else "No",
-            0,
-            "-",
-            "No"
+    all_dates = sorted(set(meals.keys()) | set(bazar.keys()))
+    summary = []
+    for date in all_dates:
+        m = meals.get(date, {"count": 0, "modified": 0})
+        b = bazar.get(date, {"bazar_count": 0, "total_cost": "", "details": ""})
+        summary.append([
+            username, date,
+            m["count"],
+            "Yes" if m["modified"] else "No",
+            b["total_cost"],
+            b["details"],
+            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
         ])
 
     cur.close()
     conn.close()
-    return jsonify({"summary": rows})
-@app.route('/summary/global')
-def summary_global():
-    if 'username' not in session:
-        return "Unauthorized", 401
+    return jsonify({"summary": summary})
 
-    month = request.args.get('month')
+@app.route('/summary/global')
+def global_summary():
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
     conn = get_db()
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT username, date,
-               COUNT(*) FILTER (WHERE meal_type != 'None') as meal_count,
-               MAX(is_modified) as modified
+        SELECT username, date, COUNT(*) FILTER (WHERE meal_type != 'None') AS count, MAX(is_modified) AS modified
         FROM meals
         WHERE date LIKE %s
         GROUP BY username, date
-        ORDER BY username, date
     """, (f"{month}-%",))
-
-    meal_data = {}
-    for row in cur.fetchall():
-        key = (row['username'], row['date'])
-        meal_data[key] = row
+    meals = {(row['username'], row['date']): {"count": row['count'], "modified": row['modified']} for row in cur.fetchall()}
 
     cur.execute("""
-        SELECT username, date, cost, details FROM bazar
+        SELECT username, date, COUNT(*) AS bazar_count, SUM(cost) AS total_cost, STRING_AGG(details, '; ') AS details
+        FROM bazar
         WHERE date LIKE %s
-        ORDER BY username, date
+        GROUP BY username, date
     """, (f"{month}-%",))
+    bazar = {(row['username'], row['date']): row for row in cur.fetchall()}
 
-    rows = []
-    for bazar in cur.fetchall():
-        key = (bazar['username'], bazar['date'])
-        meal_info = meal_data.get(key, {'meal_count': 0, 'modified': 0})
-        rows.append([
-            bazar['username'],
-            bazar['date'],
-            meal_info['meal_count'],
-            "Yes" if meal_info['modified'] else "No",
-            bazar['cost'],
-            bazar['details'],
-            "Yes"
-        ])
-
-    for key in sorted(set(meal_data.keys()) - set((row[0], row[1]) for row in rows)):
-        row = meal_data[key]
-        rows.append([
-            row['username'],
-            row['date'],
-            row['meal_count'],
-            "Yes" if row['modified'] else "No",
-            0,
-            "-",
-            "No"
+    all_keys = sorted(set(meals.keys()) | set(bazar.keys()))
+    summary = []
+    for key in all_keys:
+        username, date = key
+        m = meals.get(key, {"count": 0, "modified": 0})
+        b = bazar.get(key, {"bazar_count": 0, "total_cost": "", "details": ""})
+        summary.append([
+            username, date,
+            m["count"],
+            "Yes" if m["modified"] else "No",
+            b["total_cost"],
+            b["details"],
+            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
         ])
 
     cur.close()
     conn.close()
-    return jsonify({"summary": rows})
+    return jsonify({"summary": summary})
+
 @app.route('/summary/cost')
 def summary_cost():
     if 'username' not in session:
