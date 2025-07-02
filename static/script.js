@@ -224,4 +224,44 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.className = `toast show ${type}`;
         setTimeout(() => (toast.className = "toast"), 3000);
     }
+
+        // ========== 📄 Download Summary as PDF ==========
+    document.getElementById("downloadPdfBtn")?.addEventListener("click", async () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+
+        // Capture all summary sections
+        const sections = [
+            document.getElementById("personalSummary"),
+            document.getElementById("globalSummary"),
+            document.getElementById("costResult")
+        ];
+
+        let yOffset = 40;
+        doc.setFontSize(18);
+        doc.text("Meal Tracker Summary", 40, yOffset);
+        yOffset += 20;
+
+        for (const section of sections) {
+            if (!section || section.innerHTML.trim() === "") continue;
+
+            const canvas = await html2canvas(section);
+            const imgData = canvas.toDataURL("image/png");
+
+            const imgProps = doc.getImageProperties(imgData);
+            const pdfWidth = doc.internal.pageSize.getWidth() - 80;
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            if (yOffset + pdfHeight > doc.internal.pageSize.getHeight() - 40) {
+                doc.addPage();
+                yOffset = 40;
+            }
+
+            doc.addImage(imgData, "PNG", 40, yOffset, pdfWidth, pdfHeight);
+            yOffset += pdfHeight + 20;
+        }
+
+        doc.save("meal_summary.pdf");
+    });
+
 });
