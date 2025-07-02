@@ -348,11 +348,20 @@
       <button id="calculateCostBtn">Calculate Monthly Cost</button>
       <div id="costResult" class="scrollable-table"></div>
     </section>
+    <!-- 📄 PDF Download -->
+<section>
+  <h2>Download Full Summary</h2>
+  <button id="downloadPdfBtn">📄 Download Full Summary as PDF</button>
+</section>
+
 
     <a id="logout" href="/logout" class="logout">Logout</a>
   </div>
 
   <div id="toast" class="toast"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
