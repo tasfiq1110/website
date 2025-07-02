@@ -259,9 +259,11 @@ document.addEventListener("DOMContentLoaded", function () {
             notificationPanel.style.display = isShown ? "none" : "block";
 
             if (!isShown) {
-                unseenBadge.style.display = "none";
-                await fetch("/notifications/mark_seen", { method: "POST" });
-            }
+    await fetch("/notifications/mark_seen", { method: "POST" });
+    unseenBadge.style.display = "none";
+    const notifDot = document.getElementById("notifDot");
+    if (notifDot) notifDot.style.display = "none"; // ✅ Also hide dot
+}
         });
     }
 
