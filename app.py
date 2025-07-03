@@ -208,6 +208,51 @@ def dashboard():
         return redirect(url_for('login_page'))
     return render_template("dashboard.html")
 
+
+@app.route('/chart_data')
+def chart_data():
+    from calendar import monthrange
+
+    today = datetime.now(TIMEZONE)
+    year, month = today.year, today.month
+    num_days = monthrange(year, month)[1]
+    date_list = [f"{year}-{month:02d}-{day:02d}" for day in range(1, num_days + 1)]
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Meals per day
+    cur.execute("""
+        SELECT date, COUNT(*) as meal_count
+        FROM meals
+        WHERE date LIKE %s AND meal_type != 'None'
+        GROUP BY date
+    """, (f"{year}-{month:02d}-%",))
+    meals = {row['date']: row['meal_count'] for row in cur.fetchall()}
+
+    # Bazar cost per day
+    cur.execute("""
+        SELECT date, SUM(cost) as total_cost
+        FROM bazar
+        WHERE date LIKE %s
+        GROUP BY date
+    """, (f"{year}-{month:02d}-%",))
+    bazars = {row['date']: row['total_cost'] for row in cur.fetchall()}
+
+    cur.close()
+    conn.close()
+
+    meal_data = [meals.get(date, 0) for date in date_list]
+    bazar_data = [bazars.get(date, 0) for date in date_list]
+
+    labels = [str(int(date[-2:])) for date in date_list]  # Just day number
+    return jsonify({
+        "labels": labels,
+        "meals": meal_data,
+        "bazars": bazar_data
+    })
+
+
 @app.route('/submit_meal', methods=['POST'])
 def submit_meal():
     if 'username' not in session:
