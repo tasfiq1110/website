@@ -56,8 +56,7 @@ def init_db():
         conn.commit()
 
 init_db()
-print("🔁 Checking auto meal submission...")
-auto_add_meals()
+
 
 def add_notification(message):
     with get_db() as conn:
@@ -482,6 +481,9 @@ def mark_notifications_seen():
 def logout():
     session.pop('username', None)
     return redirect(url_for('login_page'))
+
+print("🔁 Checking auto meal submission...")
+auto_add_meals()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
