@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    let chartInstance = null;
+   let chartInstance = null;
     let isYearlyView = false;
 
 async function renderMealBazarChart() {
@@ -256,12 +256,14 @@ async function renderMealBazarChart() {
   const [year, month] = selectedMonth.split("-");
 
   // Choose API route based on view
-  const res = await fetch(isYearlyView ? `/chart_data?year=${year}` : `/chart_data?month=${selectedMonth}`);
+  const url = isYearlyView ? `/chart_data?year=${year}` : `/chart_data?month=${selectedMonth}`;
+  const res = await fetch(url);
   const data = await res.json();
 
-  // Clear existing chart
+  // Destroy existing chart if exists
   if (chartInstance) chartInstance.destroy();
 
+  // Create new chart
   chartInstance = new Chart(ctx, {
     data: {
       labels: data.labels,
@@ -280,6 +282,8 @@ async function renderMealBazarChart() {
           borderColor: 'rgba(255, 99, 132, 1)',
           borderWidth: 2,
           fill: false,
+          tension: 0.3,
+          pointRadius: 4,
           yAxisID: 'y1',
         }
       ]
@@ -291,17 +295,34 @@ async function renderMealBazarChart() {
         intersect: false
       },
       stacked: false,
+      plugins: {
+        legend: {
+          labels: {
+            font: {
+              size: 12
+            }
+          }
+        }
+      },
       scales: {
         y: {
           type: 'linear',
           position: 'left',
-          title: { display: true, text: 'Meals' }
+          title: {
+            display: true,
+            text: 'Meals'
+          }
         },
         y1: {
           type: 'linear',
           position: 'right',
-          grid: { drawOnChartArea: false },
-          title: { display: true, text: 'Bazar Cost (৳)' }
+          grid: {
+            drawOnChartArea: false
+          },
+          title: {
+            display: true,
+            text: 'Bazar Cost (৳)'
+          }
         }
       }
     }
@@ -311,7 +332,7 @@ async function renderMealBazarChart() {
   button.innerText = isYearlyView ? "Switch to Monthly View" : "Switch to Yearly View";
 }
 
-// Attach toggle logic
+// Attach toggle chart view logic
 document.getElementById("toggleChartView").addEventListener("click", () => {
   isYearlyView = !isYearlyView;
   renderMealBazarChart();
