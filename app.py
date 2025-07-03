@@ -272,9 +272,11 @@ def chart_data():
 
         year, month_num = map(int, month.split('-'))
         _, last_day = calendar.monthrange(year, month_num)
-        labels = [f"{year}-{month_num:02}-{day:02}" for day in range(1, last_day + 1)]
-        meal_counts = [meal_dict.get(date, 0) for date in labels]
-        bazar_totals = [bazar_dict.get(date, 0) for date in labels]
+        full_dates = [f"{year}-{month_num:02}-{day:02}" for day in range(1, last_day + 1)]
+        labels = [f"{day}" for day in range(1, last_day + 1)]  # Only show day numbers
+        meal_counts = [meal_dict.get(date, 0) for date in full_dates]
+        bazar_totals = [bazar_dict.get(date, 0) for date in full_dates]
+
 
     cur.close()
     conn.close()
