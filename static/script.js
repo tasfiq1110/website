@@ -256,7 +256,9 @@ async function renderMealBazarChart() {
   const [year, month] = selectedMonth.split("-");
 
   // Choose API route based on view
-  const url = isYearlyView ? `/chart_data?year=${year}` : `/chart_data?month=${selectedMonth}`;
+  const url = isYearlyView
+  ? `/chart_data?mode=yearly&year=${year}`
+  : `/chart_data?mode=monthly&month=${selectedMonth}`;
   const res = await fetch(url);
   const data = await res.json();
 
