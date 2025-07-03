@@ -65,8 +65,11 @@ def add_notification(message):
         conn.commit()
 
 def auto_add_meals():
+    print("📡 Starting auto_add_meals() check...")
+    
     today_str = datetime.now(TIMEZONE).strftime("%Y-%m-%d")
     last_run = get_last_auto_add_date()
+
     if last_run == today_str:
         print(f"✅ auto_add_meals already ran today ({today_str})")
         return
@@ -79,6 +82,8 @@ def auto_add_meals():
 
     cur.execute("SELECT username FROM users")
     users = [row['username'] for row in cur.fetchall()]
+
+    pending_notifications = []
 
     for username in users:
         current_day = first_day
@@ -94,7 +99,7 @@ def auto_add_meals():
                         INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
                         VALUES (%s, %s, %s, 2, %s)
                     """, (username, date_str, meal, timestamp))
-                    add_notification(f"Auto meal submitted for {username} on {date_str}")
+                pending_notifications.append(f"Auto meal submitted for {username} on {date_str}")
 
             current_day += timedelta(days=1)
 
@@ -102,8 +107,13 @@ def auto_add_meals():
     cur.close()
     conn.close()
 
+    # ✅ Now add notifications (outside the DB session)
+    for note in pending_notifications:
+        add_notification(note)
+
     set_last_auto_add_date(today_str)
-    print(f"✅ auto_add_meals completed for {today_str}")
+    print(f"✅ auto_add_meals completed and system_settings updated for {today_str}")
+
 
 
 
@@ -158,6 +168,7 @@ def get_last_auto_add_date():
         return row['value'] if row else None
 
 def set_last_auto_add_date(date_str):
+    print(f"📝 Setting last_auto_add_date to {date_str}")
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
