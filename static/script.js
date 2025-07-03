@@ -322,6 +322,7 @@ document.getElementById("toggleChartView").addEventListener("click", () => {
     // ========== ⏱ Initial Load ==========
     const now = new Date();
     monthPicker.value = now.toISOString().slice(0, 7);
+    renderMealBazarChart();
     fetchActiveMealsToday();
     fetchNotifications();
     setInterval(fetchActiveMealsToday, 5000);
