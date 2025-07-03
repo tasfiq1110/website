@@ -211,45 +211,82 @@ def dashboard():
 
 @app.route('/chart_data')
 def chart_data():
-    from calendar import monthrange
+    mode = request.args.get('mode', 'monthly')
+    today = datetime.now(pytz.timezone('Asia/Dhaka'))
 
-    today = datetime.now(TIMEZONE)
-    year, month = today.year, today.month
-    num_days = monthrange(year, month)[1]
-    date_list = [f"{year}-{month:02d}-{day:02d}" for day in range(1, num_days + 1)]
-
-    conn = get_db()
+    conn = get_db_connection()
     cur = conn.cursor()
 
-    # Meals per day
-    cur.execute("""
-        SELECT date, COUNT(*) as meal_count
-        FROM meals
-        WHERE date LIKE %s AND meal_type != 'None'
-        GROUP BY date
-    """, (f"{year}-{month:02d}-%",))
-    meals = {row['date']: row['meal_count'] for row in cur.fetchall()}
+    if mode == 'yearly':
+        year = today.strftime('%Y')
+        # Get monthly total meals
+        cur.execute("""
+            SELECT 
+                strftime('%m', date) AS month, 
+                COUNT(*) AS meals 
+            FROM meals 
+            WHERE strftime('%Y', date) = ?
+            GROUP BY month
+            ORDER BY month ASC
+        """, (year,))
+        meal_rows = cur.fetchall()
 
-    # Bazar cost per day
-    cur.execute("""
-        SELECT date, SUM(cost) as total_cost
-        FROM bazar
-        WHERE date LIKE %s
-        GROUP BY date
-    """, (f"{year}-{month:02d}-%",))
-    bazars = {row['date']: row['total_cost'] for row in cur.fetchall()}
+        # Get monthly bazar cost
+        cur.execute("""
+            SELECT 
+                strftime('%m', date) AS month, 
+                SUM(cost) AS total_cost 
+            FROM bazar 
+            WHERE strftime('%Y', date) = ?
+            GROUP BY month
+            ORDER BY month ASC
+        """, (year,))
+        bazar_rows = cur.fetchall()
+
+        meal_dict = {row['month']: row['meals'] for row in meal_rows}
+        bazar_dict = {row['month']: row['total_cost'] or 0 for row in bazar_rows}
+
+        labels = [calendar.month_abbr[m] for m in range(1, 13)]
+        meal_counts = [meal_dict.get(f"{m:02}", 0) for m in range(1, 13)]
+        bazar_totals = [bazar_dict.get(f"{m:02}", 0) for m in range(1, 13)]
+
+    else:  # default to monthly view
+        month = today.strftime('%Y-%m')
+        cur.execute("""
+            SELECT date, COUNT(*) AS count 
+            FROM meals 
+            WHERE strftime('%Y-%m', date) = ?
+            GROUP BY date 
+            ORDER BY date
+        """, (month,))
+        meal_rows = cur.fetchall()
+
+        cur.execute("""
+            SELECT date, SUM(cost) AS total_cost 
+            FROM bazar 
+            WHERE strftime('%Y-%m', date) = ?
+            GROUP BY date 
+            ORDER BY date
+        """, (month,))
+        bazar_rows = cur.fetchall()
+
+        meal_dict = {row['date']: row['count'] for row in meal_rows}
+        bazar_dict = {row['date']: row['total_cost'] or 0 for row in bazar_rows}
+
+        # Get all days of the current month
+        year, month_num = map(int, month.split('-'))
+        _, last_day = calendar.monthrange(year, month_num)
+        labels = [f"{year}-{month_num:02}-{day:02}" for day in range(1, last_day + 1)]
+        meal_counts = [meal_dict.get(date, 0) for date in labels]
+        bazar_totals = [bazar_dict.get(date, 0) for date in labels]
 
     cur.close()
     conn.close()
 
-    meal_data = [meals.get(date, 0) for date in date_list]
-    bazar_data = [bazars.get(date, 0) for date in date_list]
-
-    labels = [str(int(date[-2:])) for date in date_list]  # Just day number
     return jsonify({
         "labels": labels,
-        "meals": meal_data,
-        "bazars": bazar_data
+        "meals": meal_counts,
+        "bazars": bazar_totals
     })
 
 
