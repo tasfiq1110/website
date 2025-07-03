@@ -212,34 +212,29 @@ def dashboard():
 @app.route('/chart_data')
 def chart_data():
     mode = request.args.get('mode', 'monthly')
-    today = datetime.now(pytz.timezone('Asia/Dhaka'))
+    today = datetime.now(TIMEZONE)
 
     conn = get_db()
     cur = conn.cursor()
 
     if mode == 'yearly':
         year = today.strftime('%Y')
-        # Get monthly total meals
+
         cur.execute("""
-            SELECT 
-                strftime('%m', date) AS month, 
-                COUNT(*) AS meals 
-            FROM meals 
-            WHERE strftime('%Y', date) = ?
+            SELECT TO_CHAR(date::date, 'MM') AS month, COUNT(*) AS meals
+            FROM meals
+            WHERE TO_CHAR(date::date, 'YYYY') = %s
             GROUP BY month
-            ORDER BY month ASC
+            ORDER BY month
         """, (year,))
         meal_rows = cur.fetchall()
 
-        # Get monthly bazar cost
         cur.execute("""
-            SELECT 
-                strftime('%m', date) AS month, 
-                SUM(cost) AS total_cost 
-            FROM bazar 
-            WHERE strftime('%Y', date) = ?
+            SELECT TO_CHAR(date::date, 'MM') AS month, SUM(cost) AS total_cost
+            FROM bazar
+            WHERE TO_CHAR(date::date, 'YYYY') = %s
             GROUP BY month
-            ORDER BY month ASC
+            ORDER BY month
         """, (year,))
         bazar_rows = cur.fetchall()
 
@@ -250,12 +245,13 @@ def chart_data():
         meal_counts = [meal_dict.get(f"{m:02}", 0) for m in range(1, 13)]
         bazar_totals = [bazar_dict.get(f"{m:02}", 0) for m in range(1, 13)]
 
-    else:  # default to monthly view
+    else:
         month = today.strftime('%Y-%m')
+
         cur.execute("""
             SELECT date, COUNT(*) AS count 
             FROM meals 
-            WHERE strftime('%Y-%m', date) = ?
+            WHERE TO_CHAR(date::date, 'YYYY-MM') = %s
             GROUP BY date 
             ORDER BY date
         """, (month,))
@@ -264,7 +260,7 @@ def chart_data():
         cur.execute("""
             SELECT date, SUM(cost) AS total_cost 
             FROM bazar 
-            WHERE strftime('%Y-%m', date) = ?
+            WHERE TO_CHAR(date::date, 'YYYY-MM') = %s
             GROUP BY date 
             ORDER BY date
         """, (month,))
@@ -273,7 +269,6 @@ def chart_data():
         meal_dict = {row['date']: row['count'] for row in meal_rows}
         bazar_dict = {row['date']: row['total_cost'] or 0 for row in bazar_rows}
 
-        # Get all days of the current month
         year, month_num = map(int, month.split('-'))
         _, last_day = calendar.monthrange(year, month_num)
         labels = [f"{year}-{month_num:02}-{day:02}" for day in range(1, last_day + 1)]
