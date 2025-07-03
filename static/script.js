@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", function () {
             showToast(msg, res.ok ? "success" : "error");
             fetchActiveMealsToday();
             fetchNotifications();
+            // ✅ Clear checkboxes and extra input
+            document.querySelectorAll('input[name="meal"]').forEach(cb => cb.checked = false);
+            document.getElementById("extraMeal").value = "0";
         });
     }
 
