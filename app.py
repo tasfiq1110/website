@@ -47,6 +47,13 @@ def init_db():
                         timestamp TEXT NOT NULL,
                         seen_by TEXT[] DEFAULT '{}'
                     )''')
+        cur.execute('''
+        CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+       )
+    ''')
+
         conn.commit()
 
 init_db()
@@ -59,14 +66,18 @@ def add_notification(message):
         conn.commit()
 
 def auto_add_meals():
+    today_str = datetime.now(TIMEZONE).strftime("%Y-%m-%d")
+    last_run = get_last_auto_add_date()
+    if last_run == today_str:
+        print(f"✅ auto_add_meals already ran today ({today_str})")
+        return
+
     conn = get_db()
     cur = conn.cursor()
-
     today = datetime.now(TIMEZONE).date()
     first_day = today.replace(day=1)
     yesterday = today - timedelta(days=1)
 
-    # Get all users
     cur.execute("SELECT username FROM users")
     users = [row['username'] for row in cur.fetchall()]
 
@@ -74,26 +85,27 @@ def auto_add_meals():
         current_day = first_day
         while current_day <= yesterday:
             date_str = current_day.strftime("%Y-%m-%d")
-
-            # Check if user has any meal entry for that date
             cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s", (username, date_str))
             count = cur.fetchone()['count']
 
             if count == 0:
-                # Bangladesh time-based timestamp
                 timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
                 for meal in ["Lunch", "Dinner"]:
                     cur.execute("""
                         INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
                         VALUES (%s, %s, %s, 2, %s)
                     """, (username, date_str, meal, timestamp))
-                    add_notification(f"Auto meal submitted for {username} on {yesterday}")
+                    add_notification(f"Auto meal submitted for {username} on {date_str}")
 
             current_day += timedelta(days=1)
 
     conn.commit()
     cur.close()
     conn.close()
+
+    set_last_auto_add_date(today_str)
+    print(f"✅ auto_add_meals completed for {today_str}")
+
 
 
 @app.route('/')
@@ -137,6 +149,25 @@ def login_page():
         session['username'] = username
         return redirect(url_for('dashboard'))
     return "Invalid Credentials"
+
+
+def get_last_auto_add_date():
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM system_settings WHERE key = 'last_auto_add_date'")
+        row = cur.fetchone()
+        return row['value'] if row else None
+
+def set_last_auto_add_date(date_str):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO system_settings (key, value)
+            VALUES ('last_auto_add_date', %s)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        """, (date_str,))
+        conn.commit()
+
     
 @app.route('/bazar_entry')
 def get_bazar_entry():
@@ -441,4 +472,6 @@ def logout():
     return redirect(url_for('login_page'))
 
 if __name__ == '__main__':
+    print("🔁 Checking auto meal submission...")
+    auto_add_meals()
     app.run(debug=True, port=5000)
