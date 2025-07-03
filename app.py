@@ -214,7 +214,7 @@ def chart_data():
     mode = request.args.get('mode', 'monthly')
     today = datetime.now(pytz.timezone('Asia/Dhaka'))
 
-    conn = get_db_connection()
+    conn = get_db()
     cur = conn.cursor()
 
     if mode == 'yearly':
