@@ -244,26 +244,38 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    async function renderMealBazarChart() {
-  const res = await fetch("/chart_data");
+    let chartInstance = null;
+    let isYearlyView = false;
+
+async function renderMealBazarChart() {
+  const ctx = document.getElementById('mealBazarChart').getContext('2d');
+  const button = document.getElementById('toggleChartView');
+
+  // Get selected month/year
+  const selectedMonth = document.getElementById("monthPicker").value || new Date().toISOString().slice(0, 7);
+  const [year, month] = selectedMonth.split("-");
+
+  // Choose API route based on view
+  const res = await fetch(isYearlyView ? `/chart_data?year=${year}` : `/chart_data?month=${selectedMonth}`);
   const data = await res.json();
 
-  const ctx = document.getElementById('mealBazarChart').getContext('2d');
+  // Clear existing chart
+  if (chartInstance) chartInstance.destroy();
 
-  new Chart(ctx, {
+  chartInstance = new Chart(ctx, {
     data: {
       labels: data.labels,
       datasets: [
         {
           type: 'bar',
-          label: 'Total Meals',
+          label: isYearlyView ? 'Monthly Meal Count' : 'Daily Meals',
           data: data.meals,
           backgroundColor: 'rgba(54, 162, 235, 0.7)',
           yAxisID: 'y',
         },
         {
           type: 'line',
-          label: 'Total Bazar Cost',
+          label: isYearlyView ? 'Monthly Bazar Cost' : 'Daily Bazar Cost',
           data: data.bazars,
           borderColor: 'rgba(255, 99, 132, 1)',
           borderWidth: 2,
@@ -294,9 +306,17 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   });
+
+  // Update toggle button text
+  button.innerText = isYearlyView ? "Switch to Monthly View" : "Switch to Yearly View";
 }
 
-window.addEventListener('DOMContentLoaded', renderMealBazarChart);
+// Attach toggle logic
+document.getElementById("toggleChartView").addEventListener("click", () => {
+  isYearlyView = !isYearlyView;
+  renderMealBazarChart();
+});
+
 
 
     // ========== ⏱ Initial Load ==========
