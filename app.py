@@ -61,23 +61,40 @@ def add_notification(message):
 def auto_add_meals():
     conn = get_db()
     cur = conn.cursor()
-    yesterday = (datetime.now(TIMEZONE) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    today = datetime.now(TIMEZONE).date()
+    first_day = today.replace(day=1)
+    yesterday = today - timedelta(days=1)
+
+    # Get all users
     cur.execute("SELECT username FROM users")
     users = [row['username'] for row in cur.fetchall()]
+
     for username in users:
-        cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s", (username, yesterday))
-        if cur.fetchone()['count'] == 0:
-            timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
-            for meal in ["Lunch", "Dinner"]:
-                cur.execute("""INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
-                               VALUES (%s, %s, %s, 0, %s)""", (username, yesterday, meal, timestamp))
+        current_day = first_day
+        while current_day <= yesterday:
+            date_str = current_day.strftime("%Y-%m-%d")
+
+            # Check if user has any meal entry for that date
+            cur.execute("SELECT COUNT(*) FROM meals WHERE username=%s AND date=%s", (username, date_str))
+            count = cur.fetchone()['count']
+
+            if count == 0:
+                # Bangladesh time-based timestamp
+                timestamp = datetime.now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+                for meal in ["Lunch", "Dinner"]:
+                    cur.execute("""
+                        INSERT INTO meals (username, date, meal_type, is_modified, timestamp)
+                        VALUES (%s, %s, %s, 2, %s)
+                    """, (username, date_str, meal, timestamp))
+                    add_notification(f"Auto meal submitted for {username} on {yesterday}")
+
+            current_day += timedelta(days=1)
+
     conn.commit()
     cur.close()
     conn.close()
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(auto_add_meals, CronTrigger(hour=0, minute=0))
-scheduler.start()
 
 @app.route('/')
 def home():
@@ -263,6 +280,7 @@ def active_meals_today():
     cur.close()
     conn.close()
     return jsonify({"active_meals": rows})
+    
 @app.route('/summary/personal')
 def personal_summary():
     if 'username' not in session:
@@ -294,18 +312,14 @@ def personal_summary():
     for date in all_dates:
         m = meals.get(date, {"count": 0, "modified": 0})
         b = bazar.get(date, {"bazar_count": 0, "total_cost": "", "details": ""})
-        summary.append([
-            date,
-            m["count"],
-            "Yes" if m["modified"] else "No",
-            b["total_cost"],
-            b["details"],
-            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
-        ])
+        mod_text = "Edited" if m["modified"] == 1 else ("Auto" if m["modified"] == 2 else "No")
+        bazar_mod = "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
+        summary.append([date, m["count"], mod_text, b["total_cost"], b["details"], bazar_mod])
 
     cur.close()
     conn.close()
     return jsonify({"summary": summary})
+
 
 @app.route('/summary/global')
 def global_summary():
@@ -331,22 +345,17 @@ def global_summary():
 
     all_keys = sorted(set(meals.keys()) | set(bazar.keys()))
     summary = []
-    for key in all_keys:
-        username, date = key
-        m = meals.get(key, {"count": 0, "modified": 0})
-        b = bazar.get(key, {"bazar_count": 0, "total_cost": "", "details": ""})
-        summary.append([
-            username, date,
-            m["count"],
-            "Yes" if m["modified"] else "No",
-            b["total_cost"],
-            b["details"],
-            "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
-        ])
+    for (username, date) in all_keys:
+        m = meals.get((username, date), {"count": 0, "modified": 0})
+        b = bazar.get((username, date), {"bazar_count": 0, "total_cost": "", "details": ""})
+        mod_text = "Edited" if m["modified"] == 1 else ("Auto" if m["modified"] == 2 else "No")
+        bazar_mod = "Yes" if b["bazar_count"] > 1 else ("No" if b["bazar_count"] == 1 else "")
+        summary.append([username, date, m["count"], mod_text, b["total_cost"], b["details"], bazar_mod])
 
     cur.close()
     conn.close()
     return jsonify({"summary": summary})
+
 
 @app.route('/summary/cost')
 def summary_cost():
