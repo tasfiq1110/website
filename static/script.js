@@ -241,6 +241,61 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    async function renderMealBazarChart() {
+  const res = await fetch("/chart_data");
+  const data = await res.json();
+
+  const ctx = document.getElementById('mealBazarChart').getContext('2d');
+
+  new Chart(ctx, {
+    data: {
+      labels: data.labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Total Meals',
+          data: data.meals,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          yAxisID: 'y',
+        },
+        {
+          type: 'line',
+          label: 'Total Bazar Cost',
+          data: data.bazars,
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 2,
+          fill: false,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      stacked: false,
+      scales: {
+        y: {
+          type: 'linear',
+          position: 'left',
+          title: { display: true, text: 'Meals' }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Bazar Cost (৳)' }
+        }
+      }
+    }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', renderMealBazarChart);
+
+
     // ========== ⏱ Initial Load ==========
     const now = new Date();
     monthPicker.value = now.toISOString().slice(0, 7);
