@@ -242,11 +242,11 @@ def chart_data():
         meal_dict = {row['month']: row['meals'] for row in meal_rows}
         bazar_dict = {row['month']: row['total_cost'] or 0 for row in bazar_rows}
 
-        labels = [calendar.month_abbr[m] for m in range(1, 13)]
+        labels = [calendar.month_abbr[m] for m in range(1, 13)]  # Jan to Dec
         meal_counts = [meal_dict.get(f"{m:02}", 0) for m in range(1, 13)]
         bazar_totals = [bazar_dict.get(f"{m:02}", 0) for m in range(1, 13)]
 
-    else:
+    else:  # monthly
         month = today.strftime('%Y-%m')
 
         cur.execute("""
@@ -284,6 +284,7 @@ def chart_data():
         "meals": meal_counts,
         "bazars": bazar_totals
     })
+
 
 
 @app.route('/submit_meal', methods=['POST'])
