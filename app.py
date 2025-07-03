@@ -4,8 +4,7 @@ from psycopg2.extras import RealDictCursor
 import os
 import pytz
 from datetime import datetime, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
