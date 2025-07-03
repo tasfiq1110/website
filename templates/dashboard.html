@@ -116,6 +116,25 @@
       flex: 1 1 45%;
       font-weight: normal;
     }
+    .logout-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background: linear-gradient(to right, #ff4e50, #f9d423);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    margin-top: 20px;
+  }
+
+.logout-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+}
+
 
     button {
       width: 100%;
@@ -316,7 +335,7 @@
  
 
 
-    <a id="logout" href="/logout" class="logout">Logout</a>
+    <a href="/logout" class="logout-button">Logout</a>
   </div>
 
   <div id="toast" class="toast"></div>
